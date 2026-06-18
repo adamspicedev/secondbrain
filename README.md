@@ -3,6 +3,7 @@
 AI-powered knowledge management desktop app built with **Tauri**, **React**, **Rust**, and **PostgreSQL**.
 
 **Features:**
+
 - 📤 Upload images and documents
 - 🤖 AI-powered text extraction (GPT-4 Vision)
 - 🔍 Semantic search with vector embeddings
@@ -14,6 +15,7 @@ AI-powered knowledge management desktop app built with **Tauri**, **React**, **R
 ## Quick Start
 
 ### Prerequisites
+
 - **Mac**: macOS 11+, Xcode command line tools
 - **Raspberry Pi**: Raspberry Pi 4 (2GB+ RAM), running Raspberry Pi OS
 - **OpenAI API Key**: [Get one here](https://platform.openai.com/api-keys)
@@ -43,12 +45,14 @@ docker ps
 ```
 
 Find your Pi's Tailscale IP:
+
 ```bash
 tailscale ip
 # Example: 100.64.x.x
 ```
 
 Test database connection (you can do this from Mac):
+
 ```bash
 PGPASSWORD=changeme_securepassword psql -h pi.local -U secondbrain_user -d secondbrain -c "SELECT version();"
 ```
@@ -70,6 +74,7 @@ npm run dev
 ```
 
 The app will open with:
+
 - **Left panel**: Upload & search
 - **Right panel**: Document viewer
 
@@ -101,6 +106,7 @@ The app will open with:
 ```
 
 **Data Flow:**
+
 1. Upload image/doc → Tauri app
 2. Send to OpenAI GPT-4 Vision → Extract text
 3. Generate embeddings (text-embedding-3-large)
@@ -112,31 +118,34 @@ The app will open with:
 ## API / Tauri Commands
 
 ### `upload_file`
+
 Extract text and store document.
 
 ```typescript
-await tauri.invoke('upload_file', {
-  file_path: '/path/to/image.png',
-  file_type: 'image' // 'image' | 'pdf' | 'document'
+await tauri.invoke("upload_file", {
+  file_path: "/path/to/image.png",
+  file_type: "image", // 'image' | 'pdf' | 'document'
 });
 // Returns: { id, filename, extracted_text }
 ```
 
 ### `search`
+
 Semantic search across all documents.
 
 ```typescript
-await tauri.invoke('search', {
-  query: 'what is machine learning?'
+await tauri.invoke("search", {
+  query: "what is machine learning?",
 });
 // Returns: [{ id, filename, content_preview, similarity }]
 ```
 
 ### `get_document`
+
 Retrieve full text of a document.
 
 ```typescript
-await tauri.invoke('get_document', { id: 'uuid' });
+await tauri.invoke("get_document", { id: "uuid" });
 // Returns: string (full extracted text)
 ```
 
@@ -158,6 +167,7 @@ RUST_LOG=debug
 ```
 
 Or set before running:
+
 ```bash
 export OPENAI_API_KEY="sk-..."
 npm run dev
@@ -199,18 +209,21 @@ secondbrain/
 ## Development
 
 ### Hot Reload
+
 ```bash
 npm run dev
 # Changes to React code auto-reload in Tauri window
 ```
 
 ### Build Production Binary
+
 ```bash
 npm run build
 # Creates: src-tauri/target/release/secondbrain.dmg (Mac)
 ```
 
 ### Debug Database
+
 ```bash
 # Connect to Pi database directly
 PGPASSWORD=changeme_securepassword psql -h pi.local -U secondbrain_user -d secondbrain
@@ -243,6 +256,7 @@ LIMIT 5;
 ## Troubleshooting
 
 ### Database won't connect
+
 ```bash
 # Check Pi is accessible
 ping pi.local
@@ -256,11 +270,13 @@ PGPASSWORD=changeme_securepassword psql -h pi.local -U secondbrain_user -d secon
 ```
 
 ### OpenAI API errors
+
 - Verify `OPENAI_API_KEY` is set correctly
 - Check API key has sufficient quota
 - Ensure network connectivity
 
 ### Tauri build fails
+
 ```bash
 # Clear cache and rebuild
 rm -rf src-tauri/target
@@ -270,6 +286,7 @@ npm run build
 ---
 
 ## License
+
 MIT
 
 **Questions?** File an issue or check Tauri/PostgreSQL docs.

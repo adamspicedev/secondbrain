@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface SearchResult {
   id: string;
@@ -12,7 +12,7 @@ interface SearchProps {
 }
 
 export const Search: React.FC<SearchProps> = ({ onResultSelect }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,13 +23,13 @@ export const Search: React.FC<SearchProps> = ({ onResultSelect }) => {
     setIsLoading(true);
 
     try {
-      const searchResults = await (window as any).tauri.invoke('search', {
+      const searchResults = await (window as any).tauri.invoke("search", {
         query,
       });
 
       setResults(searchResults);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +46,7 @@ export const Search: React.FC<SearchProps> = ({ onResultSelect }) => {
           disabled={isLoading}
         />
         <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Searching...' : 'Search'}
+          {isLoading ? "Searching..." : "Search"}
         </button>
       </form>
 
@@ -58,7 +58,9 @@ export const Search: React.FC<SearchProps> = ({ onResultSelect }) => {
             onClick={() => onResultSelect(result)}
           >
             <h3>{result.filename}</h3>
-            <p className="similarity">Match: {(result.similarity * 100).toFixed(1)}%</p>
+            <p className="similarity">
+              Match: {(result.similarity * 100).toFixed(1)}%
+            </p>
             <p className="preview">{result.content_preview}</p>
           </div>
         ))}

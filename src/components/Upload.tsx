@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import axios from "axios";
 
 interface UploadProps {
   onUploadSuccess: (filename: string) => void;
@@ -9,7 +9,9 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -18,19 +20,19 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
 
     try {
       // Determine file type
-      const fileType = file.type.startsWith('image/')
-        ? 'image'
-        : file.type === 'application/pdf'
-        ? 'pdf'
-        : 'document';
+      const fileType = file.type.startsWith("image/")
+        ? "image"
+        : file.type === "application/pdf"
+          ? "pdf"
+          : "document";
 
       // In production, use Tauri fs API to read the file
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileType', fileType);
+      formData.append("file", file);
+      formData.append("fileType", fileType);
 
       // Call Tauri command
-      const response = await (window as any).tauri.invoke('upload_file', {
+      const response = await (window as any).tauri.invoke("upload_file", {
         file_path: file.name,
         file_type: fileType,
       });
@@ -38,7 +40,9 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
       onUploadSuccess(response.filename);
       setError(null);
     } catch (err) {
-      setError(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Upload failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setIsLoading(false);
     }

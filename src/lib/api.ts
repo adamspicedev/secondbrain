@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from "@tauri-apps/api/tauri";
 
 export interface SearchResult {
   id: string;
@@ -20,9 +20,9 @@ export interface UploadResponse {
  */
 export async function uploadFile(
   filePath: string,
-  fileType: 'image' | 'pdf' | 'document'
+  fileType: "image" | "pdf" | "document",
 ): Promise<UploadResponse> {
-  return invoke<UploadResponse>('upload_file', {
+  return invoke<UploadResponse>("upload_file", {
     file_path: filePath,
     file_type: fileType,
   });
@@ -33,7 +33,7 @@ export async function uploadFile(
  * @param query - Natural language search query
  */
 export async function searchDocuments(query: string): Promise<SearchResult[]> {
-  return invoke<SearchResult[]>('search', { query });
+  return invoke<SearchResult[]>("search", { query });
 }
 
 /**
@@ -41,7 +41,7 @@ export async function searchDocuments(query: string): Promise<SearchResult[]> {
  * @param id - Document UUID
  */
 export async function getDocument(id: string): Promise<string> {
-  return invoke<string>('get_document', { id });
+  return invoke<string>("get_document", { id });
 }
 
 /**
@@ -49,5 +49,5 @@ export async function getDocument(id: string): Promise<string> {
  * @param id - Document UUID
  */
 export async function deleteDocument(id: string): Promise<void> {
-  return invoke<void>('delete_document', { id });
+  return invoke<void>("delete_document", { id });
 }

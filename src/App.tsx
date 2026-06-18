@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Upload } from './components/Upload';
-import { Search } from './components/Search';
-import { Viewer } from './components/Viewer';
-import './App.css';
+import React, { useState } from "react";
+import { Upload } from "./components/Upload";
+import { Search } from "./components/Search";
+import { Viewer } from "./components/Viewer";
+import "./App.css";
 
 interface SearchResult {
   id: string;
@@ -12,7 +12,9 @@ interface SearchResult {
 }
 
 function App() {
-  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(
+    null,
+  );
 
   return (
     <div className="app">
@@ -22,9 +24,11 @@ function App() {
 
       <main>
         <div className="left-panel">
-          <Upload onUploadSuccess={() => {
-            console.log('Upload successful');
-          }} />
+          <Upload
+            onUploadSuccess={() => {
+              console.log("Upload successful");
+            }}
+          />
           <Search onResultSelect={setSelectedResult} />
         </div>
 
