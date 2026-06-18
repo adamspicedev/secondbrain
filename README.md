@@ -60,15 +60,15 @@ PGPASSWORD=changeme_securepassword psql -h pi.local -U secondbrain_user -d secon
 ### 2. Mac Setup (Frontend Desktop App)
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies (requires Bun: curl -fsSL https://bun.sh/install | bash)
+bun install
 
 # Set environment variables
 export OPENAI_API_KEY="sk-..."
 export DATABASE_URL="postgres://secondbrain_user:changeme_securepassword@pi.local:5432/secondbrain"
 
 # Development mode
-npm run dev
+bun run dev
 
 # This builds and launches the Tauri desktop app
 ```
@@ -170,7 +170,7 @@ Or set before running:
 
 ```bash
 export OPENAI_API_KEY="sk-..."
-npm run dev
+bun run dev
 ```
 
 ---
@@ -211,14 +211,14 @@ secondbrain/
 ### Hot Reload
 
 ```bash
-npm run dev
+bun run dev
 # Changes to React code auto-reload in Tauri window
 ```
 
 ### Build Production Binary
 
 ```bash
-npm run build
+bun run build
 # Creates: src-tauri/target/release/secondbrain.dmg (Mac)
 ```
 
@@ -280,7 +280,7 @@ PGPASSWORD=changeme_securepassword psql -h pi.local -U secondbrain_user -d secon
 ```bash
 # Clear cache and rebuild
 rm -rf src-tauri/target
-npm run build
+bun run build
 ```
 
 ---

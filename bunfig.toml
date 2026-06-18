@@ -1,0 +1,18 @@
+# Bun configuration for Second Brain project
+
+[install]
+# Allow peer dependencies to be installed
+peer = true
+
+[test]
+# Test configuration (for future use)
+timeout = 30000
+
+[build]
+# Build optimizations
+minify = { syntax = true, whitespace = true }
+target = "browser"
+
+[jsx]
+# JSX configuration
+runtime = "react"

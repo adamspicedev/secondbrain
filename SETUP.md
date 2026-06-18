@@ -131,8 +131,8 @@ cd ~/Projects
 git clone <your-repo-url> secondbrain
 cd secondbrain
 
-# Install Node.js dependencies
-npm install
+# Install dependencies (requires Bun: curl -fsSL https://bun.sh/install | bash)
+bun install
 
 # Create .env file
 cp .env.example .env
@@ -144,16 +144,14 @@ nano .env
 # DATABASE_URL=postgres://secondbrain_user:changeme_securepassword@pi.local:5432/secondbrain
 ```
 
-**If you don't have Node.js installed:**
+**If you don't have Bun installed:**
 
 ```bash
-# Using Homebrew
-brew install node
+# Install Bun (all platforms)
+curl -fsSL https://bun.sh/install | bash
 
-# Or using nvm (recommended for version management)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 18
-nvm use 18
+# Verify installation
+bun --version
 ```
 
 ---
@@ -171,7 +169,7 @@ nvm use 18
 
 ```bash
 # From the secondbrain directory on Mac
-npm run dev
+bun run dev
 
 # This will:
 # 1. Start Vite dev server (http://localhost:5173)
@@ -255,11 +253,11 @@ rm -rf src-tauri/target
 rm -rf dist
 
 # Rebuild
-npm run dev
+bun run dev
 
 # Check for errors in console
 # If still failing, check Tauri logs
-RUST_LOG=debug npm run dev
+RUST_LOG=debug bun run dev
 ```
 
 ### "pgAdmin not accessible"
@@ -329,4 +327,4 @@ Check these resources:
 
 ---
 
-**You're all set!** 🎉 Run `npm run dev` and start building your second brain.
+**You're all set!** 🎉 Run `bun run dev` and start building your second brain.

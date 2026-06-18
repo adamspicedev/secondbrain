@@ -88,6 +88,8 @@ async fn get_document(
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
+
     let db_pool = db::init_pool()
         .await
         .expect("Failed to initialize database pool");

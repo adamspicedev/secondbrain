@@ -1,11 +1,10 @@
 {
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:5173",
-    "frontendDist": "../dist"
+    "beforeDevCommand": "bun run frontend:dev",
+    "beforeBuildCommand": "bun run frontend:build",
+    "devPath": "http://localhost:5173"
   },
-  "app": {
+  "tauri": {
     "windows": [
       {
         "title": "Second Brain",
@@ -17,9 +16,7 @@
     ],
     "security": {
       "csp": null
-    }
-  },
-  "tauri": {
+    },
     "allowlist": {
       "fs": {
         "all": true

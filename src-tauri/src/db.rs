@@ -15,14 +15,23 @@ pub struct DocumentRecord {
 
 pub async fn init_pool() -> Result<DbPool, sqlx::Error> {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://user:password@pi.local:5432/secondbrain".to_string());
+        .unwrap_or_else(|_| {
+            "postgres://secondbrain_user:changeme_securepassword@pi.local:5432/secondbrain"
+                .to_string()
+        });
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await?;
 
-    // Run migrations
+    // Ensure pgvector is available before creating columns of type `vector`.
+    sqlx::query("CREATE EXTENSION IF NOT EXISTS vector")
+        .execute(&pool)
+        .await?;
+
+    // Run migrations (execute statements separately; Postgres prepared statements
+    // cannot contain multiple commands in one query call).
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS documents (
@@ -33,9 +42,16 @@ pub async fn init_pool() -> Result<DbPool, sqlx::Error> {
             embedding vector(1536),
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_embedding ON documents USING ivfflat (embedding vector_cosine_ops);
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
+
+    sqlx::query(
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_embedding
+        ON documents USING ivfflat (embedding vector_cosine_ops)
         "#,
     )
     .execute(&pool)
@@ -109,7 +125,7 @@ pub async fn vector_search(
             let content_preview = if text.len() > 200 {
                 format!("{}...", &text[..200])
             } else {
-                text
+                text.clone()
             };
 
             DocumentRecord {

@@ -1,6 +1,7 @@
 use reqwest::Client;
 use serde_json::json;
 use std::fs;
+use base64::Engine;
 
 const OPENAI_API_KEY: &str = "OPENAI_API_KEY"; // Set via env var
 
@@ -11,7 +12,7 @@ pub async fn extract_text_from_image(file_path: &str) -> Result<String, String> 
     let image_data = fs::read(file_path)
         .map_err(|e| format!("Failed to read image: {}", e))?;
 
-    let base64_image = base64::encode(&image_data);
+    let base64_image = base64::engine::general_purpose::STANDARD.encode(&image_data);
 
     let client = Client::new();
     let response = client
@@ -55,13 +56,13 @@ pub async fn extract_text_from_image(file_path: &str) -> Result<String, String> 
     Ok(text)
 }
 
-pub async fn extract_text_from_pdf(file_path: &str) -> Result<String, String> {
+pub async fn extract_text_from_pdf(_file_path: &str) -> Result<String, String> {
     // For MVP, use pdfium or similar library
     // Placeholder for now
     Err("PDF extraction not yet implemented. Use PDF to text tool first.".to_string())
 }
 
-pub async fn extract_text_from_document(file_path: &str) -> Result<String, String> {
+pub async fn extract_text_from_document(_file_path: &str) -> Result<String, String> {
     // For DOCX, use docx crate
     // Placeholder for now
     Err("Document extraction not yet implemented.".to_string())
