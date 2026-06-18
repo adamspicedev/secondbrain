@@ -13,16 +13,19 @@ This project has been migrated to **Bun** as the JavaScript runtime and package 
 ## Installation
 
 ### macOS / Linux
+
 ```bash
 curl -fsSL https://bun.sh/install | bash
 ```
 
 ### Windows
+
 ```powershell
 powershell -c "$(IRM bun.sh/install.ps1)"
 ```
 
 ### Verify Installation
+
 ```bash
 bun --version  # Should show v1.0.0 or higher
 ```
@@ -30,6 +33,7 @@ bun --version  # Should show v1.0.0 or higher
 ## Key Differences from npm
 
 ### Installation
+
 ```bash
 # OLD
 npm install
@@ -39,6 +43,7 @@ bun install
 ```
 
 ### Running Scripts
+
 ```bash
 # OLD
 npm run dev
@@ -48,6 +53,7 @@ bun run dev
 ```
 
 ### Adding Packages
+
 ```bash
 # OLD
 npm install package-name
@@ -57,6 +63,7 @@ bun add package-name
 ```
 
 ### Dev Dependencies
+
 ```bash
 # OLD
 npm install --save-dev package-name
@@ -66,6 +73,7 @@ bun add -d package-name
 ```
 
 ### Global Installation
+
 ```bash
 # OLD
 npm install -g package-name
@@ -122,21 +130,27 @@ runtime = "react"
 ## Troubleshooting
 
 ### "bun: command not found"
+
 Ensure Bun is in your PATH:
+
 ```bash
 # Add to ~/.bash_profile, ~/.zshrc, or ~/.bashrc
 export PATH=$HOME/.bun/bin:$PATH
 ```
 
 ### Dependency Conflicts
+
 If you encounter issues, clear and reinstall:
+
 ```bash
 rm -rf bun.lockb node_modules
 bun install
 ```
 
 ### TypeScript Issues
+
 Bun runs TypeScript natively—no separate tsc step needed. If you need IDE support:
+
 ```bash
 bun run type-check
 ```
