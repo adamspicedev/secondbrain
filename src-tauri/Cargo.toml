@@ -24,3 +24,6 @@ lto = true
 
 [patch.crates-io]
 block = { path = "vendor/block" }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

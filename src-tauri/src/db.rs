@@ -4,6 +4,19 @@ use uuid::Uuid;
 
 pub type DbPool = Pool<Postgres>;
 
+pub fn database_url() -> String {
+    std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        "postgres://secondbrain_user:changeme_securepassword@100.89.225.64:5432/secondbrain"
+            .to_string()
+    })
+}
+
+pub fn init_pool_lazy() -> Result<DbPool, sqlx::Error> {
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect_lazy(&database_url())
+}
+
 #[derive(Debug, Clone)]
 pub struct DocumentRecord {
     pub id: String,
@@ -41,11 +54,7 @@ pub struct HabitOccurrence {
 }
 
 pub async fn init_pool() -> Result<DbPool, sqlx::Error> {
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| {
-            "postgres://secondbrain_user:changeme_securepassword@pi.local:5432/secondbrain"
-                .to_string()
-        });
+    let database_url = database_url();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)

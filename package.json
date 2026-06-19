@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "sh ./scripts/prebuild-macos-cleanup.sh && tauri build",
     "frontend:dev": "vite",
     "frontend:build": "vite build",
     "preview": "vite preview",
