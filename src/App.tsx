@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "./components/Search";
 import { Viewer } from "./components/Viewer";
+import { Habits } from "./components/Habits";
 
 interface SearchResult {
   id: string;
@@ -47,10 +48,6 @@ function App() {
     localStorage.setItem("secondbrain-theme", theme);
   }, [theme]);
 
-  const handleToggleTheme = () => {
-    setTheme((prev) => (prev === "dawn" ? "midnight" : "dawn"));
-  };
-
   return (
     <div className="min-h-screen bg-[#f7f3e8] p-4 text-(--ink)">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1400px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-[#fbf8f1] p-4 shadow-[0_18px_50px_rgba(164,145,110,0.14)]">
@@ -72,7 +69,7 @@ function App() {
           </button>
         </header>
 
-        <main className="grid flex-1 grid-cols-[270px_minmax(0,1fr)] gap-6 px-2 pb-2 pt-4">
+        <main className="grid flex-1 grid-cols-[270px_minmax(0,1fr)_330px] gap-6 px-2 pb-2 pt-4">
           <aside className="overflow-y-auto">
             <Search
               refreshToken={searchRefreshKey}
@@ -86,6 +83,10 @@ function App() {
               onSaved={handleSaved}
             />
           </section>
+
+          <aside className="overflow-y-auto">
+            <Habits />
+          </aside>
         </main>
       </div>
     </div>

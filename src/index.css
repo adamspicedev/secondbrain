@@ -85,15 +85,17 @@ button {
 }
 
 .markdown-preview h1 {
-  font-size: 2.1rem;
+  font-size: 2.6rem;
+  letter-spacing: -0.04em;
 }
 
 .markdown-preview h2 {
-  font-size: 1.7rem;
+  font-size: 2rem;
+  letter-spacing: -0.03em;
 }
 
 .markdown-preview h3 {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
 }
 
 .markdown-preview h4 {
@@ -112,6 +114,10 @@ button {
 
 .markdown-preview p {
   margin: 0.75em 0;
+}
+
+.markdown-preview > :first-child {
+  margin-top: 0;
 }
 
 .markdown-preview ul,
@@ -164,4 +170,18 @@ button {
 
 .markdown-preview a:hover {
   text-decoration: underline;
+}
+
+.habit-date-input {
+  min-height: 3rem;
+  color: #24314a;
+}
+
+.habit-date-input::-webkit-datetime-edit {
+  font-size: 1rem;
+}
+
+.habit-date-input::-webkit-calendar-picker-indicator {
+  transform: scale(1.25);
+  cursor: pointer;
 }
