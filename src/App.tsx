@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { Habits } from "./components/Habits";
 import { Search } from "./components/Search";
 import { Viewer } from "./components/Viewer";
-import { Habits } from "./components/Habits";
 
 interface SearchResult {
   id: string;
@@ -12,9 +12,7 @@ interface SearchResult {
 
 function App() {
   const [theme, setTheme] = useState<"dawn" | "midnight">("dawn");
-  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(
-    null,
-  );
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
 
   const [searchRefreshKey, setSearchRefreshKey] = useState(0);
 
@@ -33,9 +31,7 @@ function App() {
       return;
     }
 
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     setTheme(prefersDark ? "midnight" : "dawn");
   }, []);
 
@@ -56,12 +52,11 @@ function App() {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d9ddff] text-xl text-[#6472ff] shadow-inner">
               ☼
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-[#24314a]">
-              Second Brain
-            </h1>
+            <h1 className="text-xl font-semibold tracking-tight text-[#24314a]">Second Brain</h1>
           </div>
 
           <button
+            type="button"
             onClick={handleNewDocument}
             className="rounded-full bg-[#9ea8ff] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(147,156,255,0.35)] transition hover:bg-[#8792ff]"
           >
@@ -71,17 +66,11 @@ function App() {
 
         <main className="grid flex-1 grid-cols-[270px_minmax(0,1fr)_330px] gap-6 px-2 pb-2 pt-4">
           <aside className="overflow-y-auto">
-            <Search
-              refreshToken={searchRefreshKey}
-              onResultSelect={setSelectedResult}
-            />
+            <Search refreshToken={searchRefreshKey} onResultSelect={setSelectedResult} />
           </aside>
 
           <section className="overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_30px_rgba(164,145,110,0.12)] ring-1 ring-white/80">
-            <Viewer
-              documentId={selectedResult?.id || null}
-              onSaved={handleSaved}
-            />
+            <Viewer documentId={selectedResult?.id || null} onSaved={handleSaved} />
           </section>
 
           <aside className="overflow-y-auto">

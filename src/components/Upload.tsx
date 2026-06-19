@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import { invoke } from "@tauri-apps/api/tauri";
+import type React from "react";
+import { useState } from "react";
 
 interface UploadProps {
   onUploadSuccess: (filename: string) => void;
@@ -8,9 +10,7 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -31,7 +31,7 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
       formData.append("fileType", fileType);
 
       // Call Tauri command
-      const response = await (window as any).tauri.invoke("upload_file", {
+      const response = await invoke<{ filename: string }>("upload_file", {
         filePath: file.name,
         fileType,
       });
@@ -39,9 +39,7 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
       onUploadSuccess(response.filename);
       setError(null);
     } catch (err) {
-      setError(
-        `Upload failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      setError(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoading(false);
     }

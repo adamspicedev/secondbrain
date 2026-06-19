@@ -9,7 +9,10 @@
     "frontend:dev": "vite",
     "frontend:build": "vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "biome:check": "biome check .",
+    "biome:write": "biome check --write .",
+    "biome:format": "biome format --write ."
   },
   "bunfig": {
     "install": {
@@ -24,6 +27,7 @@
     "react-markdown": "^9.0.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
     "@tailwindcss/vite": "^4.1.11",
     "@tauri-apps/cli": "^1.5.0",
     "@types/react": "^18.2.0",

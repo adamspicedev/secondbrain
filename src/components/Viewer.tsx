@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { createDocument, getDocumentDetail, updateDocument } from "../lib/api";
+import type React from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { createDocument, getDocumentDetail, updateDocument } from "../lib/api";
 
 interface ViewerProps {
   documentId: string | null;
@@ -8,9 +9,7 @@ interface ViewerProps {
 }
 
 export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(
-    documentId,
-  );
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(documentId);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isEditing, setIsEditing] = useState(!documentId);
@@ -73,9 +72,7 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
       setIsEditing(false);
       onSaved();
     } catch (error) {
-      setStatus(
-        `Save failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      setStatus(`Save failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsSaving(false);
     }
@@ -106,6 +103,7 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
         <div className="flex gap-3">
           {!isEditing ? (
             <button
+              type="button"
               onClick={() => setIsEditing(true)}
               className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#24314a] shadow-[0_8px_20px_rgba(164,145,110,0.10)] ring-1 ring-[#f0e8d9] transition hover:bg-[#fff9f1]"
             >
@@ -114,6 +112,7 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
           ) : null}
 
           <button
+            type="button"
             onClick={handleSave}
             disabled={isSaving}
             className="rounded-full bg-[#39d39a] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(57,211,154,0.25)] transition hover:bg-[#2fc58d] disabled:cursor-not-allowed disabled:opacity-60"
@@ -144,12 +143,8 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
 
       <div className="flex items-center justify-between px-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c0c8d8]">
         <div className="flex gap-6">
-          <span className={isEditing ? "text-[#a9b4c5]" : "text-[#24314a]"}>
-            Markdown
-          </span>
-          <span className={!isEditing ? "text-[#a9b4c5]" : "text-[#24314a]"}>
-            Visual
-          </span>
+          <span className={isEditing ? "text-[#a9b4c5]" : "text-[#24314a]"}>Markdown</span>
+          <span className={!isEditing ? "text-[#a9b4c5]" : "text-[#24314a]"}>Visual</span>
         </div>
         <div>{content.length} characters of magic</div>
       </div>

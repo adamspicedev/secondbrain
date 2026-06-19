@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import { searchDocuments } from "../lib/api";
 
 interface SearchResult {
@@ -13,15 +14,12 @@ interface SearchProps {
   onResultSelect: (result: SearchResult) => void;
 }
 
-export const Search: React.FC<SearchProps> = ({
-  refreshToken,
-  onResultSelect,
-}) => {
+export const Search: React.FC<SearchProps> = ({ refreshToken, onResultSelect }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchResults = async (value: string) => {
+  const fetchResults = useCallback(async (value: string, _token: number) => {
     setIsLoading(true);
 
     try {
@@ -32,11 +30,11 @@ export const Search: React.FC<SearchProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchResults(query);
-  }, [query, refreshToken]);
+    fetchResults(query, refreshToken);
+  }, [fetchResults, query, refreshToken]);
 
   return (
     <div className="flex h-full flex-col rounded-[1.75rem] bg-transparent">
@@ -58,9 +56,10 @@ export const Search: React.FC<SearchProps> = ({
           </div>
         )}
         {results.map((result) => (
-          <div
+          <button
+            type="button"
             key={result.id}
-            className="group cursor-pointer rounded-[1.5rem] border border-[#e9eef8] bg-white p-3 shadow-[0_10px_20px_rgba(164,145,110,0.08)] transition hover:border-[#cfd8ff] hover:shadow-[0_14px_24px_rgba(164,145,110,0.12)]"
+            className="group w-full cursor-pointer rounded-[1.5rem] border border-[#e9eef8] bg-white p-3 text-left shadow-[0_10px_20px_rgba(164,145,110,0.08)] transition hover:border-[#cfd8ff] hover:shadow-[0_14px_24px_rgba(164,145,110,0.12)]"
             onClick={() => onResultSelect(result)}
           >
             <div className="flex items-start gap-3">
@@ -68,15 +67,13 @@ export const Search: React.FC<SearchProps> = ({
                 {result.filename.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-semibold text-[#24314a]">
-                  {result.filename}
-                </h3>
+                <h3 className="truncate text-sm font-semibold text-[#24314a]">{result.filename}</h3>
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#8f9aad]">
                   {result.content_preview}
                 </p>
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
