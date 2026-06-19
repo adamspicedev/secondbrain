@@ -18,10 +18,13 @@ describe("Search", () => {
 
     render(<Search refreshToken={0} onResultSelect={vi.fn()} />);
 
-    expect(await screen.findByText("No documents match this filter.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No documents match this filter."),
+    ).toBeInTheDocument();
   });
 
   it("loads documents and calls onResultSelect when a result is clicked", async () => {
+    const user = userEvent.setup();
     const onResultSelect = vi.fn();
     vi.mocked(searchDocuments).mockResolvedValueOnce([
       {
@@ -37,7 +40,7 @@ describe("Search", () => {
     const cardButton = await screen.findByRole("button", {
       name: /Medication/i,
     });
-    await userEvent.click(cardButton);
+    await user.click(cardButton);
 
     await waitFor(() => {
       expect(onResultSelect).toHaveBeenCalledWith(
