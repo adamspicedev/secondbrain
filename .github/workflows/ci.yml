@@ -15,6 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate Tauri custom-protocol feature
+        run: cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 --features custom-protocol > /dev/null
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

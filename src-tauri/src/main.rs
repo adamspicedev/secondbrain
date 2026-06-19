@@ -226,9 +226,15 @@ async fn set_habit_occurrence_completed(
 async fn main() {
     dotenv::dotenv().ok();
 
-    let db_pool = db::init_pool()
-        .await
-        .expect("Failed to initialize database pool");
+    let db_pool = match db::init_pool().await {
+        Ok(pool) => pool,
+        Err(error) => {
+            eprintln!(
+                "Failed to initialize database pool at startup: {error}. Starting with lazy pool."
+            );
+            db::init_pool_lazy().expect("Failed to initialize lazy database pool")
+        }
+    };
 
     tauri::Builder::default()
         .manage(db_pool)
