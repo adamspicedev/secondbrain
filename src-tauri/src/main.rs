@@ -4,7 +4,6 @@
 )]
 
 mod db;
-mod ai;
 mod vector;
 
 use tauri::State;
@@ -25,33 +24,11 @@ pub struct UploadResponse {
     extracted_text: String,
 }
 
-#[tauri::command]
-async fn upload_file(
-    file_path: String,
-    file_type: String,
-    state: State<'_, db::DbPool>,
-) -> Result<UploadResponse, String> {
-    println!("Uploading file: {} ({})", file_path, file_type);
-
-    // Extract text from file
-    let extracted_text = match file_type.as_str() {
-        "image" => ai::extract_text_from_image(&file_path).await?,
-        "pdf" => ai::extract_text_from_pdf(&file_path).await?,
-        "document" => ai::extract_text_from_document(&file_path).await?,
-        _ => return Err("Unsupported file type".to_string()),
-    };
-
-    // Generate embedding
-    let embedding = ai::generate_embedding(&extracted_text).await?;
-
-    // Store in database
-    let result = db::store_document(&state, &file_path, &extracted_text, &embedding).await?;
-
-    Ok(UploadResponse {
-        id: result.id,
-        filename: result.filename,
-        extracted_text: result.extracted_text,
-    })
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DocumentDetail {
+    id: String,
+    title: String,
+    content: String,
 }
 
 #[tauri::command]
@@ -59,13 +36,7 @@ async fn search(
     query: String,
     state: State<'_, db::DbPool>,
 ) -> Result<Vec<SearchResult>, String> {
-    println!("Searching for: {}", query);
-
-    // Generate embedding for search query
-    let query_embedding = ai::generate_embedding(&query).await?;
-
-    // Vector search in database
-    let results = db::vector_search(&state, &query_embedding, 10).await?;
+    let results = db::keyword_search(&state, &query, 50).await?;
 
     Ok(results
         .into_iter()
@@ -79,11 +50,40 @@ async fn search(
 }
 
 #[tauri::command]
-async fn get_document(
+async fn create_document(
+    title: String,
+    content: String,
+    state: State<'_, db::DbPool>,
+) -> Result<DocumentDetail, String> {
+    let doc = db::create_document(&state, &title, &content).await?;
+    Ok(DocumentDetail {
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+    })
+}
+
+#[tauri::command]
+async fn get_document_detail(
     id: String,
     state: State<'_, db::DbPool>,
-) -> Result<String, String> {
-    db::get_document_content(&state, &id).await
+) -> Result<DocumentDetail, String> {
+    let doc = db::get_document_detail(&state, &id).await?;
+    Ok(DocumentDetail {
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+    })
+}
+
+#[tauri::command]
+async fn update_document(
+    id: String,
+    title: String,
+    content: String,
+    state: State<'_, db::DbPool>,
+) -> Result<(), String> {
+    db::update_document(&state, &id, &title, &content).await
 }
 
 #[tokio::main]
@@ -96,7 +96,12 @@ async fn main() {
 
     tauri::Builder::default()
         .manage(db_pool)
-        .invoke_handler(tauri::generate_handler![upload_file, search, get_document])
+        .invoke_handler(tauri::generate_handler![
+            search,
+            create_document,
+            get_document_detail,
+            update_document
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

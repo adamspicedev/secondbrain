@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --app-bg: #f7f3e8;
+  --surface: #fffdf8;
+  --ink: #24314a;
+
+  --brand-50: #faf5e8;
+  --brand-100: #efe4c9;
+  --brand-200: #e2d1a8;
+  --brand-300: #d2c08b;
+  --brand-400: #c2b171;
+  --brand-500: #9ea8ff;
+  --brand-600: #8490ff;
+  --brand-700: #6875ff;
+  --brand-800: #5b67ea;
+  --brand-900: #4d59c9;
+
+  --accent-500: #43d39b;
+  --accent-600: #39d39a;
+  --accent-700: #2fc58d;
+}
+
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --app-bg: #0b1220;
+  --surface: #111c2f;
+  --ink: #deebff;
+
+  --brand-50: #1a2642;
+  --brand-100: #223156;
+  --brand-200: #2a3d6d;
+  --brand-300: #35508e;
+  --brand-400: #4064af;
+  --brand-500: #4f7fff;
+  --brand-600: #6d98ff;
+  --brand-700: #8cb1ff;
+  --brand-800: #adc9ff;
+  --brand-900: #cfe0ff;
+
+  --accent-500: #00caa0;
+  --accent-600: #00ddb0;
+  --accent-700: #52e8c7;
+}
+
+:root {
+  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--app-bg);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+.markdown-preview {
+  color: #2b3547;
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  color: #24314a;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 1.4em 0 0.6em;
+}
+
+.markdown-preview h1 {
+  font-size: 2.1rem;
+}
+
+.markdown-preview h2 {
+  font-size: 1.7rem;
+}
+
+.markdown-preview h3 {
+  font-size: 1.35rem;
+}
+
+.markdown-preview h4 {
+  font-size: 1.15rem;
+}
+
+.markdown-preview h5 {
+  font-size: 1.05rem;
+}
+
+.markdown-preview h6 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.markdown-preview p {
+  margin: 0.75em 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.75em 0 0.75em 1.4em;
+  padding: 0;
+}
+
+.markdown-preview li {
+  margin: 0.35em 0;
+}
+
+.markdown-preview blockquote {
+  margin: 1em 0;
+  padding: 0.75em 1em;
+  border-left: 4px solid #d8d2c2;
+  background: #fcfaf5;
+  color: #5c6679;
+  border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.markdown-preview code {
+  background: #f3efe7;
+  padding: 0.15em 0.35em;
+  border-radius: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.markdown-preview pre {
+  margin: 1em 0;
+  padding: 1rem 1.1rem;
+  overflow: auto;
+  background: #22283a;
+  color: #e8edf8;
+  border-radius: 1rem;
+}
+
+.markdown-preview pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 0.92em;
+}
+
+.markdown-preview a {
+  color: #5b67ea;
+  text-decoration: none;
+}
+
+.markdown-preview a:hover {
+  text-decoration: underline;
+}

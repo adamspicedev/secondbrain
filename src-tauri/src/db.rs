@@ -8,9 +8,17 @@ pub type DbPool = Pool<Postgres>;
 pub struct DocumentRecord {
     pub id: String,
     pub filename: String,
+    #[allow(dead_code)]
     pub extracted_text: String,
     pub similarity: f32,
     pub content_preview: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DocumentDetail {
+    pub id: String,
+    pub title: String,
+    pub content: String,
 }
 
 pub async fn init_pool() -> Result<DbPool, sqlx::Error> {
@@ -60,6 +68,7 @@ pub async fn init_pool() -> Result<DbPool, sqlx::Error> {
     Ok(pool)
 }
 
+#[allow(dead_code)]
 pub async fn store_document(
     pool: &DbPool,
     filename: &str,
@@ -98,6 +107,7 @@ pub async fn store_document(
     })
 }
 
+#[allow(dead_code)]
 pub async fn vector_search(
     pool: &DbPool,
     embedding: &[f32; 1536],
@@ -139,6 +149,7 @@ pub async fn vector_search(
         .collect())
 }
 
+#[allow(dead_code)]
 pub async fn get_document_content(
     pool: &DbPool,
     id: &str,
@@ -153,4 +164,143 @@ pub async fn get_document_content(
     .ok_or_else(|| "Document not found".to_string())?;
 
     Ok(result)
+}
+
+pub async fn keyword_search(
+    pool: &DbPool,
+    query: &str,
+    limit: i64,
+) -> Result<Vec<DocumentRecord>, String> {
+    let like_query = format!("%{}%", query);
+    let rows = if query.trim().is_empty() {
+        sqlx::query(
+            r#"
+            SELECT id::text AS id, filename, extracted_text
+            FROM documents
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT $1
+            "#,
+        )
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+    } else {
+        sqlx::query(
+            r#"
+            SELECT id::text AS id, filename, extracted_text
+            FROM documents
+            WHERE filename ILIKE $1 OR extracted_text ILIKE $1
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT $2
+            "#,
+        )
+        .bind(like_query)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+    }
+    .map_err(|e| format!("Search failed: {}", e))?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            let text: String = row.get("extracted_text");
+            let content_preview = if text.len() > 200 {
+                format!("{}...", &text[..200])
+            } else {
+                text.clone()
+            };
+
+            DocumentRecord {
+                id: row.get("id"),
+                filename: row.get("filename"),
+                extracted_text: text,
+                similarity: 1.0,
+                content_preview,
+            }
+        })
+        .collect())
+}
+
+pub async fn create_document(
+    pool: &DbPool,
+    title: &str,
+    content: &str,
+) -> Result<DocumentDetail, String> {
+    let id = Uuid::new_v4();
+
+    sqlx::query(
+        r#"
+        INSERT INTO documents (id, filename, file_type, extracted_text, embedding)
+        VALUES ($1, $2, $3, $4, NULL)
+        "#,
+    )
+    .bind(id)
+    .bind(title)
+    .bind("note")
+    .bind(content)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to create document: {}", e))?;
+
+    Ok(DocumentDetail {
+        id: id.to_string(),
+        title: title.to_string(),
+        content: content.to_string(),
+    })
+}
+
+pub async fn update_document(
+    pool: &DbPool,
+    id: &str,
+    title: &str,
+    content: &str,
+) -> Result<(), String> {
+    let rows_affected = sqlx::query(
+        r#"
+        UPDATE documents
+        SET filename = $1,
+            extracted_text = $2,
+            embedding = NULL,
+            updated_at = NOW()
+        WHERE id = $3::uuid
+        "#,
+    )
+    .bind(title)
+    .bind(content)
+    .bind(id)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to update document: {}", e))?
+    .rows_affected();
+
+    if rows_affected == 0 {
+        return Err("Document not found".to_string());
+    }
+
+    Ok(())
+}
+
+pub async fn get_document_detail(
+    pool: &DbPool,
+    id: &str,
+) -> Result<DocumentDetail, String> {
+    let row = sqlx::query(
+        r#"
+        SELECT id::text AS id, filename, extracted_text
+        FROM documents
+        WHERE id = $1::uuid
+        "#,
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| format!("Failed to fetch document: {}", e))?
+    .ok_or_else(|| "Document not found".to_string())?;
+
+    Ok(DocumentDetail {
+        id: row.get("id"),
+        title: row.get("filename"),
+        content: row.get("extracted_text"),
+    })
 }

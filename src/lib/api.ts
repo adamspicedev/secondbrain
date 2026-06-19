@@ -13,23 +13,14 @@ export interface UploadResponse {
   extracted_text: string;
 }
 
-/**
- * Upload and process a file
- * @param filePath - Full path to the file
- * @param fileType - 'image', 'pdf', or 'document'
- */
-export async function uploadFile(
-  filePath: string,
-  fileType: "image" | "pdf" | "document",
-): Promise<UploadResponse> {
-  return invoke<UploadResponse>("upload_file", {
-    file_path: filePath,
-    file_type: fileType,
-  });
+export interface DocumentDetail {
+  id: string;
+  title: string;
+  content: string;
 }
 
 /**
- * Search documents by semantic similarity
+ * Search documents by keyword
  * @param query - Natural language search query
  */
 export async function searchDocuments(query: string): Promise<SearchResult[]> {
@@ -37,17 +28,30 @@ export async function searchDocuments(query: string): Promise<SearchResult[]> {
 }
 
 /**
- * Get full content of a document
+ * Get full content and title of a document
  * @param id - Document UUID
  */
-export async function getDocument(id: string): Promise<string> {
-  return invoke<string>("get_document", { id });
+export async function getDocumentDetail(id: string): Promise<DocumentDetail> {
+  return invoke<DocumentDetail>("get_document_detail", { id });
 }
 
 /**
- * Delete a document
- * @param id - Document UUID
+ * Create a new document
  */
-export async function deleteDocument(id: string): Promise<void> {
-  return invoke<void>("delete_document", { id });
+export async function createDocument(
+  title: string,
+  content: string,
+): Promise<DocumentDetail> {
+  return invoke<DocumentDetail>("create_document", { title, content });
+}
+
+/**
+ * Update an existing document
+ */
+export async function updateDocument(
+  id: string,
+  title: string,
+  content: string,
+): Promise<void> {
+  return invoke<void>("update_document", { id, title, content });
 }

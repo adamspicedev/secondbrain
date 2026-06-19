@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 
 interface UploadProps {
   onUploadSuccess: (filename: string) => void;
@@ -33,8 +32,8 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
 
       // Call Tauri command
       const response = await (window as any).tauri.invoke("upload_file", {
-        file_path: file.name,
-        file_type: fileType,
+        filePath: file.name,
+        fileType,
       });
 
       onUploadSuccess(response.filename);
@@ -53,6 +52,7 @@ export const Upload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
       <h2>Upload Document or Image</h2>
       <input
         type="file"
+        title="Upload a file"
         onChange={handleFileChange}
         disabled={isLoading}
         accept="image/*,.pdf,.docx"
