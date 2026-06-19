@@ -313,7 +313,7 @@ export function Habits() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 rounded-[1.5rem] bg-[#fffdf8] p-4">
+    <div className="flex h-full flex-col gap-4 rounded-3xl bg-[#fffdf8] p-4">
       <div>
         <h2 className="text-lg font-semibold text-[#24314a]">Habit Tracking</h2>
         <p className="mt-1 text-xs text-[#6d788d]">

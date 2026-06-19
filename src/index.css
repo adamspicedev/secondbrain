@@ -126,6 +126,14 @@ button {
   padding: 0;
 }
 
+.markdown-preview ul {
+  list-style: disc;
+}
+
+.markdown-preview ol {
+  list-style: decimal;
+}
+
 .markdown-preview li {
   margin: 0.35em 0;
 }
@@ -161,6 +169,108 @@ button {
   padding: 0;
   color: inherit;
   font-size: 0.92em;
+}
+
+.markdown-preview .hljs {
+  color: #e6ebf8;
+}
+
+.markdown-preview .hljs-keyword,
+.markdown-preview .hljs-selector-tag,
+.markdown-preview .hljs-literal,
+.markdown-preview .hljs-section,
+.markdown-preview .hljs-link {
+  color: #ff9ecb;
+}
+
+.markdown-preview .hljs-string,
+.markdown-preview .hljs-title,
+.markdown-preview .hljs-name,
+.markdown-preview .hljs-type,
+.markdown-preview .hljs-attribute,
+.markdown-preview .hljs-symbol,
+.markdown-preview .hljs-bullet,
+.markdown-preview .hljs-addition,
+.markdown-preview .hljs-template-tag,
+.markdown-preview .hljs-template-variable {
+  color: #b1f0a3;
+}
+
+.markdown-preview .hljs-comment,
+.markdown-preview .hljs-quote,
+.markdown-preview .hljs-deletion,
+.markdown-preview .hljs-meta {
+  color: #90a0bc;
+}
+
+.markdown-preview .hljs-number,
+.markdown-preview .hljs-regexp,
+.markdown-preview .hljs-built_in,
+.markdown-preview .hljs-builtin-name,
+.markdown-preview .hljs-variable,
+.markdown-preview .hljs-doctag,
+.markdown-preview .hljs-selector-id,
+.markdown-preview .hljs-selector-class,
+.markdown-preview .hljs-selector-attr,
+.markdown-preview .hljs-selector-pseudo {
+  color: #ffd589;
+}
+
+.markdown-preview .hljs-emphasis {
+  font-style: italic;
+}
+
+.markdown-preview .hljs-strong {
+  font-weight: 700;
+}
+
+.markdown-preview hr {
+  border: 0;
+  border-top: 1px solid #e7e1d4;
+  margin: 1.25em 0;
+}
+
+.markdown-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #e7e1d4;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border-bottom: 1px solid #ece6d9;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-preview thead th {
+  background: #f7f2e7;
+  color: #24314a;
+  font-weight: 700;
+}
+
+.markdown-preview tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.markdown-preview input[type="checkbox"] {
+  margin-right: 0.45rem;
+  accent-color: #39d39a;
+}
+
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.8rem;
+  margin: 0.8em 0;
+}
+
+.markdown-preview del {
+  color: #7b8394;
 }
 
 .markdown-preview a {

@@ -1,6 +1,8 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import { createDocument, getDocumentDetail, updateDocument } from "../lib/api";
 
 interface ViewerProps {
@@ -136,7 +138,16 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
           />
         ) : (
           <article className="markdown-preview prose prose-slate max-w-none text-[#2b3547]">
-            <ReactMarkdown>{content || ""}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={{
+                a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+                img: ({ alt, src }) => <img src={src ?? ""} alt={alt ?? ""} loading="lazy" />,
+              }}
+            >
+              {content || ""}
+            </ReactMarkdown>
           </article>
         )}
       </div>

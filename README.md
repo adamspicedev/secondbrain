@@ -82,7 +82,7 @@ The app will open with:
 
 ## Architecture
 
-```
+```bash
 ┌─────────────────────────────────────────┐
 │          Mac (Desktop)                  │
 │  ┌──────────────────────────────────┐   │
@@ -177,7 +177,7 @@ bun run dev
 
 ## Project Structure
 
-```
+```bash
 secondbrain/
 ├── src/                              # React frontend
 │   ├── components/
