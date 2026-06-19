@@ -18,9 +18,7 @@ describe("Search", () => {
 
     render(<Search refreshToken={0} onResultSelect={vi.fn()} />);
 
-    expect(
-      await screen.findByText("No documents match this filter."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No documents match this filter.")).toBeInTheDocument();
   });
 
   it("loads documents and calls onResultSelect when a result is clicked", async () => {
