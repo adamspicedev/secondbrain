@@ -263,8 +263,8 @@ RUST_LOG=debug bun run dev
 ### "pgAdmin not accessible"
 
 - Make sure pgAdmin container is running: `docker ps | grep pgadmin`
-- Access at: http://pi.local:5050 or http://100.xx.xx.xx:5050
-- Default login: admin@example.com / admin
+- Access at: <http://pi.local:5050> or <http://100.xx.xx.xx:5050>
+- Default login: <admin@example.com> / admin
 
 ---
 

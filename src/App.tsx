@@ -46,8 +46,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#f7f3e8] p-4 text-(--ink)">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1400px] flex-col overflow-hidden rounded-[2rem] border border-white/80 bg-[#fbf8f1] p-4 shadow-[0_18px_50px_rgba(164,145,110,0.14)]">
-        <header className="flex items-center justify-between rounded-[1.5rem] px-2 py-2">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-350 flex-col overflow-hidden rounded-4xl border border-white/80 bg-[#fbf8f1] p-4 shadow-[0_18px_50px_rgba(164,145,110,0.14)]">
+        <header className="flex items-center justify-between rounded-3xl px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d9ddff] text-xl text-[#6472ff] shadow-inner">
               ☼
@@ -69,7 +69,7 @@ function App() {
             <Search refreshToken={searchRefreshKey} onResultSelect={setSelectedResult} />
           </aside>
 
-          <section className="overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_30px_rgba(164,145,110,0.12)] ring-1 ring-white/80">
+          <section className="overflow-hidden rounded-4xl bg-white shadow-[0_12px_30px_rgba(164,145,110,0.12)] ring-1 ring-white/80">
             <Viewer documentId={selectedResult?.id || null} onSaved={handleSaved} />
           </section>
 

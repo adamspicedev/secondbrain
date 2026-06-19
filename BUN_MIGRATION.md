@@ -32,7 +32,7 @@ bun --version  # Should show v1.0.0 or higher
 
 ## Key Differences from npm
 
-### Installation
+### Bun Installation
 
 ```bash
 # OLD
