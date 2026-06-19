@@ -1,9 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   createHabit,
   deleteHabit,
-  Habit,
-  HabitOccurrence,
+  type Habit,
+  type HabitOccurrence,
   listHabitOccurrencesForDate,
   listHabitOccurrencesForRange,
   listHabits,
@@ -21,7 +21,24 @@ const WEEKDAYS = [
   { value: 6, label: "Sat" },
 ];
 
-const defaultTimes = ["08:00"];
+interface HabitTime {
+  id: string;
+  value: string;
+}
+
+interface CalendarCell {
+  key: string;
+  day: number | null;
+}
+
+function createHabitTime(value: string): HabitTime {
+  return {
+    id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+    value,
+  };
+}
+
+const defaultTimes = [createHabitTime("08:00")];
 const MONTH_NAMES = [
   "January",
   "February",
@@ -54,13 +71,11 @@ function toIsoDate(date: Date): string {
 
 export function Habits() {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [selectedDateItems, setSelectedDateItems] = useState<HabitOccurrence[]>(
-    [],
-  );
+  const [selectedDateItems, setSelectedDateItems] = useState<HabitOccurrence[]>([]);
   const [rangeItems, setRangeItems] = useState<HabitOccurrence[]>([]);
   const [name, setName] = useState("");
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
-  const [times, setTimes] = useState<string[]>(defaultTimes);
+  const [times, setTimes] = useState<HabitTime[]>(defaultTimes);
   const [selectedDate, setSelectedDate] = useState(todayIsoDate());
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -80,23 +95,26 @@ export function Habits() {
     return `${yyyy}-${mm}-${dd}`;
   }, [selectedDate]);
 
-  const loadData = async (targetDate: string = selectedDate) => {
-    const [habitRows, occurrenceRows, rangeRows] = await Promise.all([
-      listHabits(),
-      listHabitOccurrencesForDate(targetDate),
-      listHabitOccurrencesForRange(lookbackStartDate, targetDate),
-    ]);
+  const loadData = useCallback(
+    async (targetDate: string = selectedDate) => {
+      const [habitRows, occurrenceRows, rangeRows] = await Promise.all([
+        listHabits(),
+        listHabitOccurrencesForDate(targetDate),
+        listHabitOccurrencesForRange(lookbackStartDate, targetDate),
+      ]);
 
-    setHabits(habitRows);
-    setSelectedDateItems(occurrenceRows);
-    setRangeItems(rangeRows);
-  };
+      setHabits(habitRows);
+      setSelectedDateItems(occurrenceRows);
+      setRangeItems(rangeRows);
+    },
+    [lookbackStartDate, selectedDate],
+  );
 
   useEffect(() => {
     loadData().catch((err) => {
       setError(String(err));
     });
-  }, [selectedDate]);
+  }, [loadData]);
 
   useEffect(() => {
     const parsed = new Date(`${selectedDate}T00:00:00`);
@@ -115,8 +133,7 @@ export function Habits() {
       const items = perHabitMap.get(habit.id) ?? [];
       const total = items.length;
       const completed = items.filter((i) => i.completed).length;
-      const completionRate =
-        total === 0 ? 0 : Math.round((completed / total) * 100);
+      const completionRate = total === 0 ? 0 : Math.round((completed / total) * 100);
 
       const byDate = new Map<string, HabitOccurrence[]>();
       for (const item of items) {
@@ -125,14 +142,11 @@ export function Habits() {
         byDate.set(item.scheduled_date, existing);
       }
 
-      const scheduledDates = Array.from(byDate.keys()).sort((a, b) =>
-        a > b ? -1 : 1,
-      );
+      const scheduledDates = Array.from(byDate.keys()).sort((a, b) => (a > b ? -1 : 1));
       let streak = 0;
       for (const dateKey of scheduledDates) {
         const dayItems = byDate.get(dateKey) ?? [];
-        const dayDone =
-          dayItems.length > 0 && dayItems.every((entry) => entry.completed);
+        const dayDone = dayItems.length > 0 && dayItems.every((entry) => entry.completed);
         if (dayDone) {
           streak += 1;
         } else {
@@ -151,9 +165,7 @@ export function Habits() {
     const totalOccurrences = rangeItems.length;
     const totalCompleted = rangeItems.filter((item) => item.completed).length;
     const overallCompletionRate =
-      totalOccurrences === 0
-        ? 0
-        : Math.round((totalCompleted / totalOccurrences) * 100);
+      totalOccurrences === 0 ? 0 : Math.round((totalCompleted / totalOccurrences) * 100);
 
     return {
       perHabit,
@@ -172,17 +184,15 @@ export function Habits() {
   };
 
   const addTime = () => {
-    setTimes((prev) => [...prev, "12:00"]);
+    setTimes((prev) => [...prev, createHabitTime("12:00")]);
   };
 
-  const updateTime = (index: number, value: string) => {
-    setTimes((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+  const updateTime = (id: string, value: string) => {
+    setTimes((prev) => prev.map((item) => (item.id === id ? { ...item, value } : item)));
   };
 
-  const removeTime = (index: number) => {
-    setTimes((prev) =>
-      prev.length === 1 ? prev : prev.filter((_, idx) => idx !== index),
-    );
+  const removeTime = (id: string) => {
+    setTimes((prev) => (prev.length === 1 ? prev : prev.filter((item) => item.id !== id)));
   };
 
   const handleCreateHabit = async (event: FormEvent) => {
@@ -200,7 +210,9 @@ export function Habits() {
       return;
     }
 
-    if (times.some((t) => !/^\d{2}:\d{2}$/.test(t))) {
+    const timesOfDay = times.map((item) => item.value);
+
+    if (timesOfDay.some((t) => !/^\d{2}:\d{2}$/.test(t))) {
       setError("Every time must be in HH:MM format.");
       return;
     }
@@ -208,15 +220,9 @@ export function Habits() {
     setSaving(true);
     try {
       if (editingHabitId) {
-        await updateHabit(
-          editingHabitId,
-          name.trim(),
-          times.length,
-          days,
-          times,
-        );
+        await updateHabit(editingHabitId, name.trim(), timesOfDay.length, days, timesOfDay);
       } else {
-        await createHabit(name.trim(), times.length, days, times);
+        await createHabit(name.trim(), timesOfDay.length, days, timesOfDay);
       }
       setName("");
       setDays([0, 1, 2, 3, 4, 5, 6]);
@@ -249,7 +255,7 @@ export function Habits() {
     setEditingHabitId(habit.id);
     setName(habit.name);
     setDays([...habit.days_of_week].sort((a, b) => a - b));
-    setTimes([...habit.times_of_day]);
+    setTimes(habit.times_of_day.map((time) => createHabitTime(time)));
   };
 
   const handleDeleteHabit = async (habitId: string) => {
@@ -279,9 +285,7 @@ export function Habits() {
   };
 
   const moveMonth = (offset: number) => {
-    setCalendarMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1),
-    );
+    setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
 
   const jumpToToday = () => {
@@ -295,15 +299,17 @@ export function Habits() {
   const monthFirstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const dayCells: Array<number | null> = [];
+  const dayCells: CalendarCell[] = [];
   for (let i = 0; i < monthFirstWeekday; i += 1) {
-    dayCells.push(null);
+    dayCells.push({ key: `pad-start-${year}-${month}-${i}`, day: null });
   }
   for (let day = 1; day <= daysInMonth; day += 1) {
-    dayCells.push(day);
+    dayCells.push({ key: `day-${year}-${month}-${day}`, day });
   }
+  let trailingPad = 0;
   while (dayCells.length % 7 !== 0) {
-    dayCells.push(null);
+    dayCells.push({ key: `pad-end-${year}-${month}-${trailingPad}`, day: null });
+    trailingPad += 1;
   }
 
   return (
@@ -311,36 +317,25 @@ export function Habits() {
       <div>
         <h2 className="text-lg font-semibold text-[#24314a]">Habit Tracking</h2>
         <p className="mt-1 text-xs text-[#6d788d]">
-          Create recurring habits, edit schedules, and track completion across
-          dates.
+          Create recurring habits, edit schedules, and track completion across dates.
         </p>
       </div>
 
       <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
-        <h3 className="text-sm font-semibold text-[#24314a]">
-          Summary (Last 30 Days)
-        </h3>
+        <h3 className="text-sm font-semibold text-[#24314a]">Summary (Last 30 Days)</h3>
         <p className="mt-1 text-xs text-[#7e8aa0]">
-          Overall: {summaries.overallCompletionRate}% (
-          {summaries.totalCompleted}/{summaries.totalOccurrences})
+          Overall: {summaries.overallCompletionRate}% ({summaries.totalCompleted}/
+          {summaries.totalOccurrences})
         </p>
         <div className="mt-2 space-y-2">
           {summaries.perHabit.length === 0 ? (
-            <p className="text-xs text-[#768299]">
-              No habits to summarize yet.
-            </p>
+            <p className="text-xs text-[#768299]">No habits to summarize yet.</p>
           ) : (
             summaries.perHabit.map((item) => (
-              <div
-                key={item.habitId}
-                className="rounded-xl bg-[#faf6ec] px-3 py-2"
-              >
-                <p className="text-sm font-semibold text-[#2b3750]">
-                  {item.habitName}
-                </p>
+              <div key={item.habitId} className="rounded-xl bg-[#faf6ec] px-3 py-2">
+                <p className="text-sm font-semibold text-[#2b3750]">{item.habitName}</p>
                 <p className="text-xs text-[#7e8aa0]">
-                  Completion: {item.completionRate}% | Streak: {item.streak}{" "}
-                  days
+                  Completion: {item.completionRate}% | Streak: {item.streak} days
                 </p>
               </div>
             ))
@@ -383,14 +378,12 @@ export function Habits() {
           </div>
 
           <div className="grid grid-cols-7 gap-1">
-            {dayCells.map((day, index) => {
-              if (day === null) {
-                return (
-                  <div key={`empty-${index}`} className="h-10 rounded-lg" />
-                );
+            {dayCells.map((cell) => {
+              if (cell.day === null) {
+                return <div key={cell.key} className="h-10 rounded-lg" />;
               }
 
-              const dayDate = new Date(year, month, day);
+              const dayDate = new Date(year, month, cell.day);
               const iso = toIsoDate(dayDate);
               const isSelected = iso === selectedDate;
 
@@ -405,16 +398,14 @@ export function Habits() {
                       : "bg-white text-[#61543f] hover:bg-[#f1e8d6]"
                   }`}
                 >
-                  {day}
+                  {cell.day}
                 </button>
               );
             })}
           </div>
 
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-[#2b3750]">
-              Selected: {selectedDate}
-            </p>
+            <p className="text-sm font-semibold text-[#2b3750]">Selected: {selectedDate}</p>
             <button
               type="button"
               onClick={jumpToToday}
@@ -500,20 +491,20 @@ export function Habits() {
 
           <div className="space-y-2">
             {times.map((time, index) => (
-              <div key={`${time}-${index}`} className="flex items-center gap-2">
-                <label htmlFor={`habit-time-${index}`} className="sr-only">
+              <div key={time.id} className="flex items-center gap-2">
+                <label htmlFor={`habit-time-${time.id}`} className="sr-only">
                   Time {index + 1}
                 </label>
                 <input
-                  id={`habit-time-${index}`}
+                  id={`habit-time-${time.id}`}
                   type="time"
-                  value={time}
-                  onChange={(e) => updateTime(index, e.target.value)}
+                  value={time.value}
+                  onChange={(e) => updateTime(time.id, e.target.value)}
                   className="w-full rounded-xl border border-[#eadfca] bg-[#fffaf0] px-3 py-2 text-sm outline-none focus:border-[#c8b18b]"
                 />
                 <button
                   type="button"
-                  onClick={() => removeTime(index)}
+                  onClick={() => removeTime(time.id)}
                   className="rounded-full bg-[#f4e8df] px-3 py-1 text-xs font-semibold text-[#8a5d3a]"
                 >
                   Remove
@@ -528,29 +519,17 @@ export function Habits() {
           disabled={saving}
           className="w-full rounded-xl bg-[#93a0ff] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#7d8cff] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving
-            ? "Saving Habit..."
-            : editingHabitId
-              ? "Update Habit"
-              : "Create Habit"}
+          {saving ? "Saving Habit..." : editingHabitId ? "Update Habit" : "Create Habit"}
         </button>
       </form>
 
-      {error && (
-        <p className="rounded-xl bg-[#ffe8e8] px-3 py-2 text-xs text-[#9b3b3b]">
-          {error}
-        </p>
-      )}
+      {error && <p className="rounded-xl bg-[#ffe8e8] px-3 py-2 text-xs text-[#9b3b3b]">{error}</p>}
 
       <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
-        <h3 className="text-sm font-semibold text-[#24314a]">
-          Checklist for {selectedDate}
-        </h3>
+        <h3 className="text-sm font-semibold text-[#24314a]">Checklist for {selectedDate}</h3>
         <div className="mt-3 space-y-2">
           {selectedDateItems.length === 0 ? (
-            <p className="text-xs text-[#768299]">
-              No scheduled habits for this date.
-            </p>
+            <p className="text-xs text-[#768299]">No scheduled habits for this date.</p>
           ) : (
             selectedDateItems.map((item) => (
               <label
@@ -558,12 +537,8 @@ export function Habits() {
                 className="flex items-center justify-between rounded-xl bg-[#faf6ec] px-3 py-2"
               >
                 <div>
-                  <p className="text-sm font-medium text-[#2b3750]">
-                    {item.habit_name}
-                  </p>
-                  <p className="text-xs text-[#7e8aa0]">
-                    {item.scheduled_time}
-                  </p>
+                  <p className="text-sm font-medium text-[#2b3750]">{item.habit_name}</p>
+                  <p className="text-xs text-[#7e8aa0]">{item.scheduled_time}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -588,12 +563,9 @@ export function Habits() {
               <div key={habit.id} className="rounded-xl bg-[#faf6ec] px-3 py-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-[#2b3750]">
-                      {habit.name}
-                    </p>
+                    <p className="text-sm font-semibold text-[#2b3750]">{habit.name}</p>
                     <p className="text-xs text-[#7e8aa0]">
-                      {habit.times_per_day}x/day at{" "}
-                      {habit.times_of_day.join(", ")}
+                      {habit.times_per_day}x/day at {habit.times_of_day.join(", ")}
                     </p>
                   </div>
                   <div className="flex gap-2">

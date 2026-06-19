@@ -55,21 +55,14 @@ export async function getDocumentDetail(id: string): Promise<DocumentDetail> {
 /**
  * Create a new document
  */
-export async function createDocument(
-  title: string,
-  content: string,
-): Promise<DocumentDetail> {
+export async function createDocument(title: string, content: string): Promise<DocumentDetail> {
   return invoke<DocumentDetail>("create_document", { title, content });
 }
 
 /**
  * Update an existing document
  */
-export async function updateDocument(
-  id: string,
-  title: string,
-  content: string,
-): Promise<void> {
+export async function updateDocument(id: string, title: string, content: string): Promise<void> {
   return invoke<void>("update_document", { id, title, content });
 }
 
@@ -111,9 +104,7 @@ export async function listHabits(): Promise<Habit[]> {
   return invoke<Habit[]>("list_habits");
 }
 
-export async function listHabitOccurrencesForDate(
-  date: string,
-): Promise<HabitOccurrence[]> {
+export async function listHabitOccurrencesForDate(date: string): Promise<HabitOccurrence[]> {
   return invoke<HabitOccurrence[]>("list_habit_occurrences_for_date", { date });
 }
 
