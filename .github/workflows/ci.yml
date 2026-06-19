@@ -37,3 +37,38 @@ jobs:
 
       - name: Unit tests
         run: bun run test:unit
+
+  package-macos:
+    name: Build macOS App Bundle
+    runs-on: macos-latest
+    needs: quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Tauri app (macOS)
+        run: bun run build
+
+      - name: Upload macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Second-Brain-macOS-app
+          path: src-tauri/target/release/bundle/macos/Second Brain.app
+
+      - name: Upload macOS dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Second-Brain-macOS-dmg
+          path: src-tauri/target/release/bundle/dmg/Second Brain_*_aarch64.dmg
