@@ -128,16 +128,16 @@ export const Viewer: React.FC<ViewerProps> = ({ documentId, onSaved }) => {
         <div className="px-2 pb-3 text-xs text-[#7d8aa0]">{status}</div>
       )}
 
-      <div className="flex-1 rounded-4xl bg-[#fffdf8] p-6 shadow-[0_10px_24px_rgba(164,145,110,0.08)] ring-1 ring-[#f0e8d9]">
+      <div className="flex min-h-0 flex-1 rounded-4xl bg-[#fffdf8] p-6 shadow-[0_10px_24px_rgba(164,145,110,0.08)] ring-1 ring-[#f0e8d9]">
         {isEditing ? (
           <textarea
-            className="min-h-105 w-full resize-none border-0 bg-transparent text-[15px] leading-8 text-[#2b3547] outline-none placeholder:text-[#b8c1d0]"
+            className="h-full min-h-0 w-full resize-none border-0 bg-transparent text-[15px] leading-8 text-[#2b3547] outline-none placeholder:text-[#b8c1d0]"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="this is a test"
           />
         ) : (
-          <article className="markdown-preview prose prose-slate max-w-none text-[#2b3547]">
+          <article className="markdown-preview prose prose-slate h-full max-w-none overflow-y-auto pr-1 text-[#2b3547]">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}

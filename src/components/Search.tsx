@@ -49,7 +49,7 @@ export const Search: React.FC<SearchProps> = ({ refreshToken, onResultSelect }) 
         />
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
         {!isLoading && results.length === 0 && (
           <div className="rounded-3xl border border-dashed border-[#eadfbf] bg-[#fff9eb] px-4 py-8 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#d7a84f]">
             No documents match this filter.
@@ -59,7 +59,7 @@ export const Search: React.FC<SearchProps> = ({ refreshToken, onResultSelect }) 
           <button
             type="button"
             key={result.id}
-            className="group w-full cursor-pointer rounded-3xl border border-[#e9eef8] bg-white p-3 text-left shadow-[0_10px_20px_rgba(164,145,110,0.08)] transition hover:border-[#cfd8ff] hover:shadow-[0_14px_24px_rgba(164,145,110,0.12)]"
+            className="group m-0 w-full cursor-pointer rounded-3xl border border-[#e9eef8] bg-white p-3 text-left shadow-[0_10px_20px_rgba(164,145,110,0.08)] transition hover:border-[#cfd8ff] hover:shadow-[0_14px_24px_rgba(164,145,110,0.12)]"
             onClick={() => onResultSelect(result)}
           >
             <div className="flex items-start gap-3">

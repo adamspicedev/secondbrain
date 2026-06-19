@@ -13,6 +13,7 @@ interface SearchResult {
 function App() {
   const [theme, setTheme] = useState<"dawn" | "midnight">("dawn");
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+  const [newDocumentTrigger, setNewDocumentTrigger] = useState(0);
 
   const [searchRefreshKey, setSearchRefreshKey] = useState(0);
 
@@ -22,6 +23,7 @@ function App() {
 
   const handleNewDocument = () => {
     setSelectedResult(null);
+    setNewDocumentTrigger((value) => value + 1);
   };
 
   useEffect(() => {
@@ -70,7 +72,11 @@ function App() {
           </aside>
 
           <section className="overflow-hidden rounded-4xl bg-white shadow-[0_12px_30px_rgba(164,145,110,0.12)] ring-1 ring-white/80">
-            <Viewer documentId={selectedResult?.id || null} onSaved={handleSaved} />
+            <Viewer
+              key={`viewer-${selectedResult?.id ?? "new"}-${newDocumentTrigger}`}
+              documentId={selectedResult?.id || null}
+              onSaved={handleSaved}
+            />
           </section>
 
           <aside className="overflow-y-auto">
