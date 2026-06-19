@@ -445,7 +445,14 @@ export function Habits() {
           )}
         </div>
 
+        <label
+          htmlFor="habit-name"
+          className="block text-xs font-semibold uppercase tracking-wide text-[#7c6d56]"
+        >
+          Habit Name
+        </label>
         <input
+          id="habit-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Habit name (e.g. Take medication)"
@@ -494,7 +501,11 @@ export function Habits() {
           <div className="space-y-2">
             {times.map((time, index) => (
               <div key={`${time}-${index}`} className="flex items-center gap-2">
+                <label htmlFor={`habit-time-${index}`} className="sr-only">
+                  Time {index + 1}
+                </label>
                 <input
+                  id={`habit-time-${index}`}
                   type="time"
                   value={time}
                   onChange={(e) => updateTime(index, e.target.value)}
@@ -558,6 +569,7 @@ export function Habits() {
                   type="checkbox"
                   checked={item.completed}
                   onChange={() => handleToggleCompleted(item)}
+                  aria-label={`Mark ${item.habit_name} at ${item.scheduled_time} as done`}
                   className="h-4 w-4 accent-[#7e8bff]"
                 />
               </label>
