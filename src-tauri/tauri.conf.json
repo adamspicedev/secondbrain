@@ -1,4 +1,8 @@
 {
+  "package": {
+    "productName": "Second Brain",
+    "version": "0.1.0"
+  },
   "build": {
     "beforeDevCommand": "bun run frontend:dev",
     "beforeBuildCommand": "bun run frontend:build",
@@ -25,6 +29,13 @@
         "all": true,
         "execute": true
       }
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "com.adamspicedev.secondbrain",
+      "icon": [
+        "icons/icon.png"
+      ]
     }
   }
 }

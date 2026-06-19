@@ -49,8 +49,8 @@ function App() {
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-350 flex-col overflow-hidden rounded-4xl border border-white/80 bg-[#fbf8f1] p-4 shadow-[0_18px_50px_rgba(164,145,110,0.14)]">
         <header className="flex items-center justify-between rounded-3xl px-2 py-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d9ddff] text-xl text-[#6472ff] shadow-inner">
-              ☼
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#d9ddff] shadow-inner">
+              <img src="/icon.png" alt="Second Brain logo" className="h-7 w-7 object-contain" />
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-[#24314a]">Second Brain</h1>
           </div>
