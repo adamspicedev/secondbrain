@@ -9,6 +9,7 @@ import {
   listHabitOccurrencesForRange,
   listHabits,
   setHabitOccurrenceCompleted,
+  syncAppleRemindersToHabits,
   syncHabitsToAppleReminders,
   updateHabit,
 } from "../lib/api";
@@ -95,8 +96,6 @@ export function Habits() {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const syncingRemindersRef = useRef(false);
-  const autoSyncInitializedRef = useRef(false);
-  const lastAutoSyncSignatureRef = useRef<string>("");
 
   useEffect(() => {
     let midnightTimer: ReturnType<typeof setTimeout>;
@@ -336,6 +335,9 @@ export function Habits() {
       setReminderStatus(null);
       setError(null);
 
+      await syncAppleRemindersToHabits(selectedDate);
+      await loadData(selectedDate);
+
       if (selectedDateChecklistItems.length === 0 && !forceWhenEmpty) {
         if (!silentWhenNoDue) {
           setReminderStatus("No scheduled habits for the selected date.");
@@ -366,34 +368,17 @@ export function Habits() {
     [selectedDate, selectedDateChecklistItems, syncingReminders],
   );
 
-  const autoSyncSignature = useMemo(() => {
-    const itemsSignature = selectedDateItems
-      .map(
-        (item) =>
-          `${item.scheduled_date}:${item.habit_id}:${item.scheduled_time}:${item.completed ? "1" : "0"}`,
-      )
-      .sort()
-      .join("|");
-
-    return `${selectedDate}::${itemsSignature}`;
-  }, [selectedDate, selectedDateItems]);
-
   useEffect(() => {
-    if (!autoSyncInitializedRef.current) {
-      autoSyncInitializedRef.current = true;
-      lastAutoSyncSignatureRef.current = autoSyncSignature;
-      return;
-    }
+    const intervalId = setInterval(() => {
+      handleSyncAppleReminders({ silentWhenNoDue: true, forceWhenEmpty: true }).catch((err) => {
+        setReminderStatus(String(err));
+      });
+    }, 60_000);
 
-    if (lastAutoSyncSignatureRef.current === autoSyncSignature) {
-      return;
-    }
-
-    lastAutoSyncSignatureRef.current = autoSyncSignature;
-    handleSyncAppleReminders({ silentWhenNoDue: true, forceWhenEmpty: true }).catch((err) => {
-      setReminderStatus(String(err));
-    });
-  }, [autoSyncSignature, handleSyncAppleReminders]);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [handleSyncAppleReminders]);
 
   const cancelEdit = () => {
     setEditingHabitId(null);

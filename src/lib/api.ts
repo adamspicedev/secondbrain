@@ -147,3 +147,7 @@ export async function syncHabitsToAppleReminders(
     items,
   });
 }
+
+export async function syncAppleRemindersToHabits(date: string): Promise<string> {
+  return invoke<string>("sync_apple_reminders_to_habits", { date });
+}
