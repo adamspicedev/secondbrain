@@ -320,12 +320,13 @@ export function Habits() {
   };
 
   const handleSyncAppleReminders = useCallback(
-    async (
-      {
-        silentWhenNoDue = false,
-        forceWhenEmpty = false,
-      }: { silentWhenNoDue?: boolean; forceWhenEmpty?: boolean } = {},
-    ) => {
+    async ({
+      silentWhenNoDue = false,
+      forceWhenEmpty = false,
+    }: {
+      silentWhenNoDue?: boolean;
+      forceWhenEmpty?: boolean;
+    } = {}) => {
       if (syncingReminders || syncingRemindersRef.current) {
         return;
       }
