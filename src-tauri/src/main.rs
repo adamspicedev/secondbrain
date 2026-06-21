@@ -6,8 +6,11 @@
 mod db;
 mod vector;
 
-use tauri::State;
 use serde::{Deserialize, Serialize};
+use tauri::State;
+
+#[cfg(target_os = "macos")]
+use std::process::Command;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchResult {
@@ -48,6 +51,55 @@ pub struct HabitOccurrenceDto {
     scheduled_date: String,
     scheduled_time: String,
     completed: bool,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AppleReminderItemDto {
+    habit_name: String,
+    scheduled_time: String,
+}
+
+#[cfg(target_os = "macos")]
+fn escape_applescript_string(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+#[cfg(target_os = "macos")]
+fn create_apple_reminder(date: &str, habit_name: &str, scheduled_time: &str) -> Result<(), String> {
+    let title = format!("Habit due: {} ({})", habit_name, scheduled_time);
+    let body = format!("Scheduled for {} at {}", date, scheduled_time);
+    let due_date_string = format!("{} {}:00", date, scheduled_time);
+
+    let script = format!(
+        r#"
+set dueDateString to "{due_date_string}"
+set dueDate to date (do shell script "date -j -f '%Y-%m-%d %H:%M:%S' " & quoted form of dueDateString & " '+%m/%d/%Y %H:%M:%S'")
+
+tell application "Reminders"
+    if not (exists list "Second Brain") then
+        make new list with properties {{name:"Second Brain"}}
+    end if
+    set targetList to list "Second Brain"
+    make new reminder at end of reminders of targetList with properties {{name:"{title}", body:"{body}", remind me date:dueDate}}
+end tell
+"#,
+        due_date_string = escape_applescript_string(&due_date_string),
+        title = escape_applescript_string(&title),
+        body = escape_applescript_string(&body)
+    );
+
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .map_err(|error| format!("Failed to launch osascript: {error}"))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
 }
 
 #[tauri::command]
@@ -222,6 +274,41 @@ async fn set_habit_occurrence_completed(
     .await
 }
 
+#[tauri::command]
+async fn sync_habits_to_apple_reminders(
+    date: String,
+    items: Vec<AppleReminderItemDto>,
+) -> Result<String, String> {
+    if items.is_empty() {
+        return Ok("No reminders were created.".to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let mut created = 0usize;
+
+        for item in items {
+            if item.scheduled_time.len() != 5 {
+                continue;
+            }
+
+            create_apple_reminder(&date, &item.habit_name, &item.scheduled_time)?;
+            created += 1;
+        }
+
+        return Ok(format!(
+            "Created {} reminder(s) in Apple Reminders list 'Second Brain'.",
+            created
+        ));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (date, items);
+        Err("Apple Reminders sync is only available on macOS.".to_string())
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -249,7 +336,8 @@ async fn main() {
             list_habits,
             list_habit_occurrences_for_date,
             list_habit_occurrences_for_range,
-            set_habit_occurrence_completed
+            set_habit_occurrence_completed,
+            sync_habits_to_apple_reminders
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

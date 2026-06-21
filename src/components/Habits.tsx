@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  type AppleReminderItem,
   createHabit,
   deleteHabit,
   type Habit,
@@ -8,6 +9,7 @@ import {
   listHabitOccurrencesForRange,
   listHabits,
   setHabitOccurrenceCompleted,
+  syncHabitsToAppleReminders,
   updateHabit,
 } from "../lib/api";
 
@@ -84,6 +86,8 @@ export function Habits() {
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingHabitId, setDeletingHabitId] = useState<string | null>(null);
+  const [syncingReminders, setSyncingReminders] = useState(false);
+  const [reminderStatus, setReminderStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const lookbackStartDate = useMemo(() => {
@@ -274,6 +278,32 @@ export function Habits() {
       setError(String(err));
     } finally {
       setDeletingHabitId(null);
+    }
+  };
+
+  const handleSyncAppleReminders = async () => {
+    setReminderStatus(null);
+    setError(null);
+
+    const dueItems = selectedDateItems.filter((item) => !item.completed);
+    if (dueItems.length === 0) {
+      setReminderStatus("No incomplete habits for the selected date.");
+      return;
+    }
+
+    const reminderItems: AppleReminderItem[] = dueItems.map((item) => ({
+      habitName: item.habit_name,
+      scheduledTime: item.scheduled_time,
+    }));
+
+    setSyncingReminders(true);
+    try {
+      const message = await syncHabitsToAppleReminders(selectedDate, reminderItems);
+      setReminderStatus(message);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setSyncingReminders(false);
     }
   };
 
@@ -526,7 +556,18 @@ export function Habits() {
       {error && <p className="rounded-xl bg-[#ffe8e8] px-3 py-2 text-xs text-[#9b3b3b]">{error}</p>}
 
       <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
-        <h3 className="text-sm font-semibold text-[#24314a]">Checklist for {selectedDate}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-[#24314a]">Checklist for {selectedDate}</h3>
+          <button
+            type="button"
+            onClick={handleSyncAppleReminders}
+            disabled={syncingReminders}
+            className="rounded-full bg-[#edf0ff] px-3 py-1 text-xs font-semibold text-[#4d5dcf] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {syncingReminders ? "Syncing..." : "Send to Apple Reminders"}
+          </button>
+        </div>
+        {reminderStatus ? <p className="mt-2 text-xs text-[#4b5c78]">{reminderStatus}</p> : null}
         <div className="mt-3 space-y-2">
           {selectedDateItems.length === 0 ? (
             <p className="text-xs text-[#768299]">No scheduled habits for this date.</p>
