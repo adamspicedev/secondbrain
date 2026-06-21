@@ -365,7 +365,7 @@ export function Habits() {
         setSyncingReminders(false);
       }
     },
-    [selectedDate, selectedDateChecklistItems, syncingReminders],
+    [loadData, selectedDate, selectedDateChecklistItems, syncingReminders],
   );
 
   useEffect(() => {
