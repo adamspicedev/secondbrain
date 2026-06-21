@@ -71,6 +71,10 @@ function toIsoDate(date: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function syncTimeLabel(date: Date): string {
+  return date.toLocaleTimeString();
+}
+
 export function Habits() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [selectedDateItems, setSelectedDateItems] = useState<HabitOccurrence[]>([]);
@@ -88,8 +92,36 @@ export function Habits() {
   const [deletingHabitId, setDeletingHabitId] = useState<string | null>(null);
   const [syncingReminders, setSyncingReminders] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const syncingRemindersRef = useRef(false);
+  const autoSyncInitializedRef = useRef(false);
+  const lastAutoSyncSignatureRef = useRef<string>("");
+
+  useEffect(() => {
+    let midnightTimer: ReturnType<typeof setTimeout>;
+
+    const scheduleNextMidnightTick = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delayMs = Math.max(1000, nextMidnight.getTime() - now.getTime() + 100);
+
+      midnightTimer = setTimeout(() => {
+        const nextDate = todayIsoDate();
+        const parsed = new Date(`${nextDate}T00:00:00`);
+        setSelectedDate(nextDate);
+        setCalendarMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+        scheduleNextMidnightTick();
+      }, delayMs);
+    };
+
+    scheduleNextMidnightTick();
+
+    return () => {
+      clearTimeout(midnightTimer);
+    };
+  }, []);
 
   const lookbackStartDate = useMemo(() => {
     const base = new Date(`${selectedDate}T00:00:00`);
@@ -179,6 +211,11 @@ export function Habits() {
       overallCompletionRate,
     };
   }, [habits, rangeItems]);
+
+  const selectedDateChecklistItems = useMemo(
+    () => selectedDateItems.filter((item) => item.scheduled_date === selectedDate),
+    [selectedDateItems, selectedDate],
+  );
 
   const toggleDay = (value: number) => {
     setDays((prev) =>
@@ -282,40 +319,81 @@ export function Habits() {
     }
   };
 
-  const handleSyncAppleReminders = async () => {
-    if (syncingReminders || syncingRemindersRef.current) {
+  const handleSyncAppleReminders = useCallback(
+    async ({
+      silentWhenNoDue = false,
+      forceWhenEmpty = false,
+    }: {
+      silentWhenNoDue?: boolean;
+      forceWhenEmpty?: boolean;
+    } = {}) => {
+      if (syncingReminders || syncingRemindersRef.current) {
+        return;
+      }
+
+      syncingRemindersRef.current = true;
+      setSyncingReminders(true);
+      setReminderStatus(null);
+      setError(null);
+
+      if (selectedDateChecklistItems.length === 0 && !forceWhenEmpty) {
+        if (!silentWhenNoDue) {
+          setReminderStatus("No scheduled habits for the selected date.");
+        }
+        syncingRemindersRef.current = false;
+        setSyncingReminders(false);
+        return;
+      }
+
+      const reminderItems: AppleReminderItem[] = selectedDateChecklistItems.map((item) => ({
+        habitName: item.habit_name,
+        scheduledTime: item.scheduled_time,
+        completed: item.completed,
+      }));
+
+      setSyncingReminders(true);
+      try {
+        const message = await syncHabitsToAppleReminders(selectedDate, reminderItems);
+        setReminderStatus(message);
+        setLastSyncedAt(syncTimeLabel(new Date()));
+      } catch (err) {
+        setReminderStatus(String(err));
+      } finally {
+        syncingRemindersRef.current = false;
+        setSyncingReminders(false);
+      }
+    },
+    [selectedDate, selectedDateChecklistItems, syncingReminders],
+  );
+
+  const autoSyncSignature = useMemo(() => {
+    const itemsSignature = selectedDateItems
+      .map(
+        (item) =>
+          `${item.scheduled_date}:${item.habit_id}:${item.scheduled_time}:${item.completed ? "1" : "0"}`,
+      )
+      .sort()
+      .join("|");
+
+    return `${selectedDate}::${itemsSignature}`;
+  }, [selectedDate, selectedDateItems]);
+
+  useEffect(() => {
+    if (!autoSyncInitializedRef.current) {
+      autoSyncInitializedRef.current = true;
+      lastAutoSyncSignatureRef.current = autoSyncSignature;
       return;
     }
 
-    syncingRemindersRef.current = true;
-    setSyncingReminders(true);
-    setReminderStatus(null);
-    setError(null);
-
-    const dueItems = selectedDateItems.filter((item) => !item.completed);
-    if (dueItems.length === 0) {
-      setReminderStatus("No incomplete habits for the selected date.");
-      syncingRemindersRef.current = false;
-      setSyncingReminders(false);
+    if (lastAutoSyncSignatureRef.current === autoSyncSignature) {
       return;
     }
 
-    const reminderItems: AppleReminderItem[] = dueItems.map((item) => ({
-      habitName: item.habit_name,
-      scheduledTime: item.scheduled_time,
-    }));
-
-    setSyncingReminders(true);
-    try {
-      const message = await syncHabitsToAppleReminders(selectedDate, reminderItems);
-      setReminderStatus(message);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      syncingRemindersRef.current = false;
-      setSyncingReminders(false);
-    }
-  };
+    lastAutoSyncSignatureRef.current = autoSyncSignature;
+    handleSyncAppleReminders({ silentWhenNoDue: true, forceWhenEmpty: true }).catch((err) => {
+      setReminderStatus(String(err));
+    });
+  }, [autoSyncSignature, handleSyncAppleReminders]);
 
   const cancelEdit = () => {
     setEditingHabitId(null);
@@ -381,6 +459,52 @@ export function Habits() {
             ))
           )}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-[#24314a]">Checklist for {selectedDate}</h3>
+          <button
+            type="button"
+            onClick={() => {
+              handleSyncAppleReminders().catch((err) => {
+                setReminderStatus(String(err));
+              });
+            }}
+            disabled={syncingReminders}
+            className="rounded-full bg-[#edf0ff] px-3 py-1 text-xs font-semibold text-[#4d5dcf] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {syncingReminders ? "Syncing..." : "Send to Apple Reminders"}
+          </button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {selectedDateChecklistItems.length === 0 ? (
+            <p className="text-xs text-[#768299]">No scheduled habits for this date.</p>
+          ) : (
+            selectedDateChecklistItems.map((item) => (
+              <label
+                key={`${item.habit_id}-${item.scheduled_date}-${item.scheduled_time}`}
+                className="flex items-center justify-between rounded-xl bg-[#faf6ec] px-3 py-2"
+              >
+                <div>
+                  <p className="text-sm font-medium text-[#2b3750]">{item.habit_name}</p>
+                  <p className="text-xs text-[#7e8aa0]">{item.scheduled_time}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={item.completed}
+                  onChange={() => handleToggleCompleted(item)}
+                  aria-label={`Mark ${item.habit_name} at ${item.scheduled_time} as done`}
+                  className="h-4 w-4 accent-[#7e8bff]"
+                />
+              </label>
+            ))
+          )}
+        </div>
+        {reminderStatus ? <p className="mt-3 text-xs text-[#4b5c78]">{reminderStatus}</p> : null}
+        {lastSyncedAt ? (
+          <p className="mt-1 text-[11px] text-[#7e8aa0]">Last synced: {lastSyncedAt}</p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
@@ -564,45 +688,6 @@ export function Habits() {
       </form>
 
       {error && <p className="rounded-xl bg-[#ffe8e8] px-3 py-2 text-xs text-[#9b3b3b]">{error}</p>}
-
-      <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-[#24314a]">Checklist for {selectedDate}</h3>
-          <button
-            type="button"
-            onClick={handleSyncAppleReminders}
-            disabled={syncingReminders}
-            className="rounded-full bg-[#edf0ff] px-3 py-1 text-xs font-semibold text-[#4d5dcf] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {syncingReminders ? "Syncing..." : "Send to Apple Reminders"}
-          </button>
-        </div>
-        {reminderStatus ? <p className="mt-2 text-xs text-[#4b5c78]">{reminderStatus}</p> : null}
-        <div className="mt-3 space-y-2">
-          {selectedDateItems.length === 0 ? (
-            <p className="text-xs text-[#768299]">No scheduled habits for this date.</p>
-          ) : (
-            selectedDateItems.map((item) => (
-              <label
-                key={`${item.habit_id}-${item.scheduled_date}-${item.scheduled_time}`}
-                className="flex items-center justify-between rounded-xl bg-[#faf6ec] px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium text-[#2b3750]">{item.habit_name}</p>
-                  <p className="text-xs text-[#7e8aa0]">{item.scheduled_time}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={item.completed}
-                  onChange={() => handleToggleCompleted(item)}
-                  aria-label={`Mark ${item.habit_name} at ${item.scheduled_time} as done`}
-                  className="h-4 w-4 accent-[#7e8bff]"
-                />
-              </label>
-            ))
-          )}
-        </div>
-      </section>
 
       <section className="rounded-2xl border border-[#efe7d7] bg-white p-3">
         <h3 className="text-sm font-semibold text-[#24314a]">All Habits</h3>
