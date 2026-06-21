@@ -35,7 +35,22 @@
       "identifier": "com.adamspicedev.secondbrain",
       "icon": [
         "icons/icon.png"
-      ]
+      ],
+      "dmg": {
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "background": "icons/dmg-background.png"
+      }
     }
   }
 }
