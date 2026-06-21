@@ -44,6 +44,7 @@ describe("api wrappers", () => {
       {
         habitName: "Walk",
         scheduledTime: "18:30",
+        completed: false,
       },
     ]);
 
@@ -53,6 +54,7 @@ describe("api wrappers", () => {
         {
           habitName: "Walk",
           scheduledTime: "18:30",
+          completed: false,
         },
       ],
     });

@@ -62,6 +62,8 @@ pub struct HabitOccurrenceDto {
 pub struct AppleReminderItemDto {
     habit_name: String,
     scheduled_time: String,
+    #[serde(default)]
+    completed: bool,
 }
 
 #[cfg(target_os = "macos")]
@@ -108,35 +110,177 @@ fn run_osascript_with_timeout(script: &str, timeout: Duration) -> Result<Output,
 }
 
 #[cfg(target_os = "macos")]
-fn create_apple_reminder(date: &str, habit_name: &str, scheduled_time: &str) -> Result<(), String> {
+fn sync_apple_reminder_item(
+    date: &str,
+    habit_name: &str,
+    scheduled_time: &str,
+    completed: bool,
+) -> Result<(bool, bool), String> {
+    const APPLESCRIPT_TIMEOUT_SECONDS: u64 = 120;
+
     let title = format!("Habit due: {} ({})", habit_name, scheduled_time);
     let body = format!("Scheduled for {} at {}", date, scheduled_time);
     let due_date_string = format!("{} {}:00", date, scheduled_time);
+    let completed_literal = if completed { "true" } else { "false" };
 
     let script = format!(
         r#"
-with timeout of 15 seconds
+with timeout of {apple_timeout} seconds
 set dueDateString to "{due_date_string}"
-set dueDate to date (do shell script "date -j -f '%Y-%m-%d %H:%M:%S' " & quoted form of dueDateString & " '+%m/%d/%Y %H:%M:%S'")
+set dueEpoch to (do shell script "date -j -f '%Y-%m-%d %H:%M:%S' " & quoted form of dueDateString & " '+%s'") as integer
+set nowEpoch to (do shell script "date '+%s'") as integer
+set dueDate to (current date) + (dueEpoch - nowEpoch)
+set targetCompleted to {completed_literal}
 
 tell application "Reminders"
     if not (exists list "Second Brain") then
         make new list with properties {{name:"Second Brain"}}
     end if
     set targetList to list "Second Brain"
-    make new reminder at end of reminders of targetList with properties {{name:"{title}", body:"{body}", remind me date:dueDate}}
+    set existingReminders to (every reminder of targetList whose name is "{title}" and body is "{body}")
+    set createdCount to 0
+    set completedChangedCount to 0
+    if (count of existingReminders) is 0 then
+        if targetCompleted is false then
+            make new reminder at end of reminders of targetList with properties {{name:"{title}", body:"{body}", remind me date:dueDate, completed:false}}
+            set createdCount to 1
+        end if
+    else
+        repeat with r in existingReminders
+            if completed of r is not targetCompleted then
+                set completed of r to targetCompleted
+                set completedChangedCount to completedChangedCount + 1
+            end if
+            if targetCompleted is false then
+                set remind me date of r to dueDate
+            end if
+        end repeat
+    end if
+    return (createdCount as text) & "," & (completedChangedCount as text)
 end tell
 end timeout
 "#,
+        apple_timeout = APPLESCRIPT_TIMEOUT_SECONDS,
         due_date_string = escape_applescript_string(&due_date_string),
+        completed_literal = completed_literal,
         title = escape_applescript_string(&title),
         body = escape_applescript_string(&body)
     );
 
-    let output = run_osascript_with_timeout(&script, Duration::from_secs(15))?;
+    let output = match run_osascript_with_timeout(&script, Duration::from_secs(APPLESCRIPT_TIMEOUT_SECONDS)) {
+        Ok(output) => output,
+        Err(error) if error.contains("timed out") => {
+            // Best effort: wake Reminders and retry once. First launch or permission prompts can stall.
+            let _ = Command::new("open")
+                .arg("-a")
+                .arg("Reminders")
+                .output();
+
+            run_osascript_with_timeout(&script, Duration::from_secs(APPLESCRIPT_TIMEOUT_SECONDS)).map_err(
+                |retry_error| {
+                    format!(
+                        "{retry_error}. If this persists, open Reminders and allow automation for Second Brain in System Settings > Privacy & Security > Automation."
+                    )
+                },
+            )?
+        }
+        Err(error) => return Err(error),
+    };
 
     if output.status.success() {
-        Ok(())
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let mut parts = stdout.split(',');
+        let created = parts
+            .next()
+            .unwrap_or("0")
+            .trim()
+            .parse::<usize>()
+            .unwrap_or(0);
+        let completed_changed = parts
+            .next()
+            .unwrap_or("0")
+            .trim()
+            .parse::<usize>()
+            .unwrap_or(0);
+        Ok((created > 0, completed_changed > 0))
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn remove_apple_reminders_not_in_schedule(
+    date: &str,
+    items: &[AppleReminderItemDto],
+) -> Result<usize, String> {
+    const APPLESCRIPT_TIMEOUT_SECONDS: u64 = 60;
+
+    let allowed_bodies = items
+        .iter()
+        .map(|item| {
+            format!(
+                "\"{}\"",
+                escape_applescript_string(&format!("Scheduled for {} at {}", date, item.scheduled_time))
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let allowed_bodies_list = if allowed_bodies.is_empty() {
+        "{}".to_string()
+    } else {
+        format!("{{{allowed_bodies}}}")
+    };
+
+    let script = format!(
+        r#"
+with timeout of {apple_timeout} seconds
+set targetDate to "{target_date}"
+set targetBodyPrefix to "Scheduled for " & targetDate & " at "
+set allowedBodies to {allowed_bodies}
+
+tell application "Reminders"
+    if not (exists list "Second Brain") then
+        return "0"
+    end if
+
+    set targetList to list "Second Brain"
+    set removedCount to 0
+    set reminderCount to count of reminders of targetList
+
+    repeat with idx from reminderCount to 1 by -1
+        try
+            set r to reminder idx of targetList
+            set reminderBody to body of r
+            if reminderBody starts with "Scheduled for " then
+                if reminderBody does not contain targetBodyPrefix then
+                    delete r
+                    set removedCount to removedCount + 1
+                else
+                    if allowedBodies does not contain reminderBody then
+                        delete r
+                        set removedCount to removedCount + 1
+                    end if
+                end if
+            end if
+        on error
+            -- Skip reminders that became unavailable while iterating.
+        end try
+    end repeat
+
+    return removedCount as text
+end tell
+end timeout
+"#,
+        apple_timeout = APPLESCRIPT_TIMEOUT_SECONDS,
+    target_date = escape_applescript_string(date),
+    allowed_bodies = allowed_bodies_list
+    );
+
+    let output = run_osascript_with_timeout(&script, Duration::from_secs(APPLESCRIPT_TIMEOUT_SECONDS))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        Ok(stdout.parse::<usize>().unwrap_or(0))
     } else {
         Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
     }
@@ -319,26 +463,30 @@ async fn sync_habits_to_apple_reminders(
     date: String,
     items: Vec<AppleReminderItemDto>,
 ) -> Result<String, String> {
-    if items.is_empty() {
-        return Ok("No reminders were created.".to_string());
-    }
-
     #[cfg(target_os = "macos")]
     {
         let mut created = 0usize;
+        let mut completed_updated = 0usize;
+        let removed_obsolete = remove_apple_reminders_not_in_schedule(&date, &items)?;
 
         for item in items {
             if item.scheduled_time.len() != 5 {
                 continue;
             }
 
-            create_apple_reminder(&date, &item.habit_name, &item.scheduled_time)?;
-            created += 1;
+            let (was_created, completion_changed) =
+                sync_apple_reminder_item(&date, &item.habit_name, &item.scheduled_time, item.completed)?;
+            if was_created {
+                created += 1;
+            }
+            if completion_changed {
+                completed_updated += 1;
+            }
         }
 
         return Ok(format!(
-            "Created {} reminder(s) in Apple Reminders list 'Second Brain'.",
-            created
+            "Synced Apple Reminders: {} created, {} completion state updates, {} obsolete reminders removed in list 'Second Brain'.",
+            created, completed_updated, removed_obsolete
         ));
     }
 

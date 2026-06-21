@@ -135,6 +135,7 @@ export async function setHabitOccurrenceCompleted(
 export interface AppleReminderItem {
   habitName: string;
   scheduledTime: string;
+  completed: boolean;
 }
 
 export async function syncHabitsToAppleReminders(
