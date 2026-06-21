@@ -8,6 +8,7 @@ mod vector;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
+use std::collections::HashMap;
 
 #[cfg(target_os = "macos")]
 use std::process::{Command, Output, Stdio};
@@ -286,6 +287,155 @@ end timeout
     }
 }
 
+#[cfg(target_os = "macos")]
+fn list_apple_reminders_for_date(date: &str) -> Result<Vec<AppleReminderItemDto>, String> {
+    const APPLESCRIPT_TIMEOUT_SECONDS: u64 = 60;
+
+    let script = format!(
+        r#"
+with timeout of {apple_timeout} seconds
+set targetDate to "{target_date}"
+set targetBodyPrefix to "Scheduled for " & targetDate & " at "
+
+tell application "Reminders"
+    if not (exists list "Second Brain") then
+        return ""
+    end if
+
+    set targetList to list "Second Brain"
+    set serializedRows to {{}}
+
+    repeat with r in (every reminder of targetList)
+        try
+            set reminderBody to body of r
+            if reminderBody starts with targetBodyPrefix then
+                set reminderName to name of r
+                set isDone to completed of r
+
+                set habitName to reminderName
+                if reminderName starts with "Habit due: " then
+                    set remainderName to text 12 thru -1 of reminderName
+                    if remainderName contains " (" then
+                        set AppleScript's text item delimiters to " ("
+                        set nameParts to text items of remainderName
+                        set habitName to item 1 of nameParts
+                        set AppleScript's text item delimiters to ""
+                    else
+                        set habitName to remainderName
+                    end if
+                end if
+
+                set scheduledTime to text ((length of targetBodyPrefix) + 1) thru -1 of reminderBody
+                set row to habitName & tab & scheduledTime & tab & (isDone as text)
+                set end of serializedRows to row
+            end if
+        on error
+            -- ignore malformed reminders
+        end try
+    end repeat
+
+    set AppleScript's text item delimiters to linefeed
+    set outputText to serializedRows as text
+    set AppleScript's text item delimiters to ""
+    return outputText
+end tell
+end timeout
+"#,
+        apple_timeout = APPLESCRIPT_TIMEOUT_SECONDS,
+        target_date = escape_applescript_string(date)
+    );
+
+    let output = run_osascript_with_timeout(&script, Duration::from_secs(APPLESCRIPT_TIMEOUT_SECONDS))?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut items = Vec::new();
+    for line in stdout.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let mut parts = line.split('\t');
+        let habit_name = parts.next().unwrap_or("").trim().to_string();
+        let scheduled_time = parts.next().unwrap_or("").trim().to_string();
+        let completed_raw = parts.next().unwrap_or("false").trim().to_lowercase();
+
+        if habit_name.is_empty() || scheduled_time.len() != 5 {
+            continue;
+        }
+
+        let completed = matches!(completed_raw.as_str(), "true" | "yes");
+        items.push(AppleReminderItemDto {
+            habit_name,
+            scheduled_time,
+            completed,
+        });
+    }
+
+    Ok(items)
+}
+
+#[cfg(target_os = "macos")]
+async fn sync_apple_reminders_to_habits_internal(
+    date: &str,
+    state: &State<'_, db::DbPool>,
+) -> Result<usize, String> {
+    let reminders = list_apple_reminders_for_date(date)?;
+    if reminders.is_empty() {
+        return Ok(0);
+    }
+
+    let occurrences = db::list_habit_occurrences_for_date(state, date).await?;
+    let mut by_name_time: HashMap<(String, String), Vec<db::HabitOccurrence>> = HashMap::new();
+    for occurrence in occurrences {
+        by_name_time
+            .entry((occurrence.habit_name.clone(), occurrence.scheduled_time.clone()))
+            .or_default()
+            .push(occurrence);
+    }
+
+    let mut updated = 0usize;
+    for reminder in reminders {
+        if let Some(matching) = by_name_time.get(&(reminder.habit_name.clone(), reminder.scheduled_time.clone())) {
+            for occurrence in matching {
+                if occurrence.completed != reminder.completed {
+                    db::set_habit_occurrence_completed(
+                        state,
+                        &occurrence.habit_id,
+                        date,
+                        &occurrence.scheduled_time,
+                        reminder.completed,
+                    )
+                    .await?;
+                    updated += 1;
+                }
+            }
+        }
+    }
+
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn sync_apple_reminders_to_habits(
+    date: String,
+    state: State<'_, db::DbPool>,
+) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let updated = sync_apple_reminders_to_habits_internal(&date, &state).await?;
+        return Ok(format!("Synced {} reminder completion update(s) into habits.", updated));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (date, state);
+        Err("Apple Reminders sync is only available on macOS.".to_string())
+    }
+}
+
 #[tauri::command]
 async fn search(
     query: String,
@@ -462,9 +612,11 @@ async fn set_habit_occurrence_completed(
 async fn sync_habits_to_apple_reminders(
     date: String,
     items: Vec<AppleReminderItemDto>,
+    state: State<'_, db::DbPool>,
 ) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
+        let pulled_updates = sync_apple_reminders_to_habits_internal(&date, &state).await?;
         let mut created = 0usize;
         let mut completed_updated = 0usize;
         let removed_obsolete = remove_apple_reminders_not_in_schedule(&date, &items)?;
@@ -485,14 +637,14 @@ async fn sync_habits_to_apple_reminders(
         }
 
         return Ok(format!(
-            "Synced Apple Reminders: {} created, {} completion state updates, {} obsolete reminders removed in list 'Second Brain'.",
-            created, completed_updated, removed_obsolete
+            "Synced Apple Reminders: {} pulled into habits, {} created, {} completion state updates, {} obsolete reminders removed in list 'Second Brain'.",
+            pulled_updates, created, completed_updated, removed_obsolete
         ));
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (date, items);
+        let _ = (date, items, state);
         Err("Apple Reminders sync is only available on macOS.".to_string())
     }
 }
@@ -525,7 +677,8 @@ async fn main() {
             list_habit_occurrences_for_date,
             list_habit_occurrences_for_range,
             set_habit_occurrence_completed,
-            sync_habits_to_apple_reminders
+            sync_habits_to_apple_reminders,
+            sync_apple_reminders_to_habits
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

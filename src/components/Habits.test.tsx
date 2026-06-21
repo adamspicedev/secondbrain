@@ -8,6 +8,7 @@ import {
   listHabitOccurrencesForRange,
   listHabits,
   setHabitOccurrenceCompleted,
+  syncAppleRemindersToHabits,
   syncHabitsToAppleReminders,
   updateHabit,
 } from "../lib/api";
@@ -20,6 +21,7 @@ vi.mock("../lib/api", () => ({
   listHabitOccurrencesForRange: vi.fn(),
   listHabits: vi.fn(),
   setHabitOccurrenceCompleted: vi.fn(),
+  syncAppleRemindersToHabits: vi.fn(),
   syncHabitsToAppleReminders: vi.fn(),
   updateHabit: vi.fn(),
 }));
@@ -41,6 +43,9 @@ describe("Habits notifications", () => {
     vi.mocked(setHabitOccurrenceCompleted).mockResolvedValue(undefined);
     vi.mocked(listHabits).mockResolvedValue([]);
     vi.mocked(listHabitOccurrencesForRange).mockResolvedValue([]);
+    vi.mocked(syncAppleRemindersToHabits).mockResolvedValue(
+      "Synced 0 reminder completion update(s) into habits.",
+    );
     vi.mocked(syncHabitsToAppleReminders).mockResolvedValue(
       "Synced Apple Reminders: 0 created, 0 completion state updates in list 'Second Brain'.",
     );
@@ -87,6 +92,7 @@ describe("Habits notifications", () => {
         completed: true,
       },
     ]);
+    expect(syncAppleRemindersToHabits).toHaveBeenCalledWith(selectedDate);
   });
 
   it("syncs checklist items to Apple Reminders with completion state", async () => {
@@ -172,9 +178,9 @@ describe("Habits notifications", () => {
       },
     ]);
 
-    vi.mocked(syncHabitsToAppleReminders)
-      .mockResolvedValueOnce("Auto sync complete")
-      .mockRejectedValueOnce(new Error("Reminders permission denied"));
+    vi.mocked(syncHabitsToAppleReminders).mockRejectedValueOnce(
+      new Error("Reminders permission denied"),
+    );
 
     render(<Habits />);
 
@@ -211,8 +217,6 @@ describe("Habits notifications", () => {
       },
     ]);
 
-    vi.mocked(syncHabitsToAppleReminders).mockResolvedValueOnce("Auto sync complete");
-
     let resolveSync!: (message: string) => void;
     const pendingSync = new Promise<string>((resolve) => {
       resolveSync = resolve;
@@ -222,10 +226,6 @@ describe("Habits notifications", () => {
     render(<Habits />);
 
     await screen.findByText(/Checklist for/);
-    await waitFor(() => {
-      expect(vi.mocked(syncHabitsToAppleReminders)).toHaveBeenCalled();
-    });
-    vi.mocked(syncHabitsToAppleReminders).mockClear();
 
     const syncButton = screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i });
 
