@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type AppleReminderItem,
   createHabit,
@@ -89,6 +89,7 @@ export function Habits() {
   const [syncingReminders, setSyncingReminders] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const syncingRemindersRef = useRef(false);
 
   const lookbackStartDate = useMemo(() => {
     const base = new Date(`${selectedDate}T00:00:00`);
@@ -282,12 +283,20 @@ export function Habits() {
   };
 
   const handleSyncAppleReminders = async () => {
+    if (syncingReminders || syncingRemindersRef.current) {
+      return;
+    }
+
+    syncingRemindersRef.current = true;
+    setSyncingReminders(true);
     setReminderStatus(null);
     setError(null);
 
     const dueItems = selectedDateItems.filter((item) => !item.completed);
     if (dueItems.length === 0) {
       setReminderStatus("No incomplete habits for the selected date.");
+      syncingRemindersRef.current = false;
+      setSyncingReminders(false);
       return;
     }
 
@@ -303,6 +312,7 @@ export function Habits() {
     } catch (err) {
       setError(String(err));
     } finally {
+      syncingRemindersRef.current = false;
       setSyncingReminders(false);
     }
   };

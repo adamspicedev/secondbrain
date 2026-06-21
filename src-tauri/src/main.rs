@@ -10,7 +10,11 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[cfg(target_os = "macos")]
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
+#[cfg(target_os = "macos")]
+use std::thread;
+#[cfg(target_os = "macos")]
+use std::time::{Duration, Instant};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchResult {
@@ -66,6 +70,44 @@ fn escape_applescript_string(value: &str) -> String {
 }
 
 #[cfg(target_os = "macos")]
+fn run_osascript_with_timeout(script: &str, timeout: Duration) -> Result<Output, String> {
+    let mut child = Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Failed to launch osascript: {error}"))?;
+
+    let started = Instant::now();
+    loop {
+        match child
+            .try_wait()
+            .map_err(|error| format!("Failed to monitor osascript process: {error}"))?
+        {
+            Some(_) => {
+                return child
+                    .wait_with_output()
+                    .map_err(|error| format!("Failed to collect osascript output: {error}"));
+            }
+            None => {
+                if started.elapsed() >= timeout {
+                    child
+                        .kill()
+                        .map_err(|error| format!("Failed to terminate osascript process: {error}"))?;
+                    let _ = child.wait_with_output();
+                    return Err(format!(
+                        "AppleScript execution timed out after {} seconds",
+                        timeout.as_secs()
+                    ));
+                }
+                thread::sleep(Duration::from_millis(100));
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
 fn create_apple_reminder(date: &str, habit_name: &str, scheduled_time: &str) -> Result<(), String> {
     let title = format!("Habit due: {} ({})", habit_name, scheduled_time);
     let body = format!("Scheduled for {} at {}", date, scheduled_time);
@@ -73,6 +115,7 @@ fn create_apple_reminder(date: &str, habit_name: &str, scheduled_time: &str) -> 
 
     let script = format!(
         r#"
+with timeout of 15 seconds
 set dueDateString to "{due_date_string}"
 set dueDate to date (do shell script "date -j -f '%Y-%m-%d %H:%M:%S' " & quoted form of dueDateString & " '+%m/%d/%Y %H:%M:%S'")
 
@@ -83,17 +126,14 @@ tell application "Reminders"
     set targetList to list "Second Brain"
     make new reminder at end of reminders of targetList with properties {{name:"{title}", body:"{body}", remind me date:dueDate}}
 end tell
+end timeout
 "#,
         due_date_string = escape_applescript_string(&due_date_string),
         title = escape_applescript_string(&title),
         body = escape_applescript_string(&body)
     );
 
-    let output = Command::new("osascript")
-        .arg("-e")
-        .arg(script)
-        .output()
-        .map_err(|error| format!("Failed to launch osascript: {error}"))?;
+    let output = run_osascript_with_timeout(&script, Duration::from_secs(15))?;
 
     if output.status.success() {
         Ok(())

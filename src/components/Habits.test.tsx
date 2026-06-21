@@ -164,4 +164,38 @@ describe("Habits notifications", () => {
     ]);
     expect(await screen.findByText(/Reminders permission denied/)).toBeInTheDocument();
   });
+
+  it("prevents re-entrant Apple Reminders sync calls", async () => {
+    const user = userEvent.setup();
+    const selectedDate = todayIsoDate();
+
+    vi.mocked(listHabitOccurrencesForDate).mockResolvedValue([
+      {
+        occurrence_id: "o1",
+        habit_id: "h1",
+        habit_name: "Walk",
+        scheduled_date: selectedDate,
+        scheduled_time: "08:00",
+        completed: false,
+      },
+    ]);
+
+    let resolveSync!: (message: string) => void;
+    const pendingSync = new Promise<string>((resolve) => {
+      resolveSync = resolve;
+    });
+    vi.mocked(syncHabitsToAppleReminders).mockReturnValueOnce(pendingSync);
+
+    render(<Habits />);
+
+    await screen.findByText(/Checklist for/);
+    const syncButton = screen.getByRole("button", { name: "Send to Apple Reminders" });
+
+    await user.click(syncButton);
+    await user.click(syncButton);
+
+    expect(syncHabitsToAppleReminders).toHaveBeenCalledTimes(1);
+    resolveSync("Created 1 reminder");
+    expect(await screen.findByText("Created 1 reminder")).toBeInTheDocument();
+  });
 });
