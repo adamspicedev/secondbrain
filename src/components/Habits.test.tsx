@@ -34,13 +34,16 @@ function todayIsoDate(): string {
 
 describe("Habits notifications", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.mocked(createHabit).mockResolvedValue({} as never);
     vi.mocked(updateHabit).mockResolvedValue({} as never);
     vi.mocked(deleteHabit).mockResolvedValue(undefined);
     vi.mocked(setHabitOccurrenceCompleted).mockResolvedValue(undefined);
     vi.mocked(listHabits).mockResolvedValue([]);
     vi.mocked(listHabitOccurrencesForRange).mockResolvedValue([]);
+    vi.mocked(syncHabitsToAppleReminders).mockResolvedValue(
+      "Synced Apple Reminders: 0 created, 0 completion state updates in list 'Second Brain'.",
+    );
   });
 
   afterEach(() => {
@@ -69,8 +72,13 @@ describe("Habits notifications", () => {
     render(<Habits />);
 
     await screen.findByText(/Checklist for/);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }),
+      ).toBeInTheDocument();
+    });
 
-    await user.click(screen.getByRole("button", { name: "Send to Apple Reminders" }));
+    await user.click(screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }));
 
     expect(syncHabitsToAppleReminders).toHaveBeenCalledWith(selectedDate, [
       {
@@ -119,8 +127,13 @@ describe("Habits notifications", () => {
     render(<Habits />);
 
     await screen.findByText(/Checklist for/);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }),
+      ).toBeInTheDocument();
+    });
 
-    await user.click(screen.getByRole("button", { name: "Send to Apple Reminders" }));
+    await user.click(screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }));
 
     await waitFor(() => {
       expect(syncHabitsToAppleReminders).toHaveBeenCalledWith(selectedDate, [
@@ -159,14 +172,19 @@ describe("Habits notifications", () => {
       },
     ]);
 
-    vi.mocked(syncHabitsToAppleReminders).mockRejectedValueOnce(
-      new Error("Reminders permission denied"),
-    );
+    vi.mocked(syncHabitsToAppleReminders)
+      .mockResolvedValueOnce("Auto sync complete")
+      .mockRejectedValueOnce(new Error("Reminders permission denied"));
 
     render(<Habits />);
 
     await screen.findByText(/Checklist for/);
-    await user.click(screen.getByRole("button", { name: "Send to Apple Reminders" }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i }));
 
     expect(syncHabitsToAppleReminders).toHaveBeenCalledWith(selectedDate, [
       {
@@ -193,6 +211,8 @@ describe("Habits notifications", () => {
       },
     ]);
 
+    vi.mocked(syncHabitsToAppleReminders).mockResolvedValueOnce("Auto sync complete");
+
     let resolveSync!: (message: string) => void;
     const pendingSync = new Promise<string>((resolve) => {
       resolveSync = resolve;
@@ -202,7 +222,12 @@ describe("Habits notifications", () => {
     render(<Habits />);
 
     await screen.findByText(/Checklist for/);
-    const syncButton = screen.getByRole("button", { name: "Send to Apple Reminders" });
+    await waitFor(() => {
+      expect(vi.mocked(syncHabitsToAppleReminders)).toHaveBeenCalled();
+    });
+    vi.mocked(syncHabitsToAppleReminders).mockClear();
+
+    const syncButton = screen.getByRole("button", { name: /Send to Apple Reminders|Syncing/i });
 
     await user.click(syncButton);
     await user.click(syncButton);
