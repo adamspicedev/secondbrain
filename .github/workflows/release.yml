@@ -1,9 +1,11 @@
 name: Release
 
 on:
-  push:
+  pull_request_target:
     branches:
       - main
+    types:
+      - closed
 
 permissions:
   contents: write
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   release:
     name: Semantic Release
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'testing' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: main
           fetch-depth: 0
 
       # Pinned from oven-sh/setup-bun@v2
