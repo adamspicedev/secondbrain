@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 jobs:
@@ -40,4 +40,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF: refs/heads/main
+          GITHUB_HEAD_REF: ""
+          GITHUB_BASE_REF: ""
         run: bunx semantic-release --no-ci
