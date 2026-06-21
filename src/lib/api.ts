@@ -131,3 +131,18 @@ export async function setHabitOccurrenceCompleted(
     completed,
   });
 }
+
+export interface AppleReminderItem {
+  habitName: string;
+  scheduledTime: string;
+}
+
+export async function syncHabitsToAppleReminders(
+  date: string,
+  items: AppleReminderItem[],
+): Promise<string> {
+  return invoke<string>("sync_habits_to_apple_reminders", {
+    date,
+    items,
+  });
+}

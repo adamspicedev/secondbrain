@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createHabit, setHabitOccurrenceCompleted } from "./api";
+import { createHabit, setHabitOccurrenceCompleted, syncHabitsToAppleReminders } from "./api";
 
 vi.mock("@tauri-apps/api/tauri", () => ({
   invoke: vi.fn(),
@@ -34,6 +34,27 @@ describe("api wrappers", () => {
       scheduledDate: "2026-06-19",
       scheduledTime: "08:00",
       completed: true,
+    });
+  });
+
+  it("maps Apple Reminders sync payload keys correctly", async () => {
+    vi.mocked(invoke).mockResolvedValueOnce("Created 1 reminder");
+
+    await syncHabitsToAppleReminders("2026-06-21", [
+      {
+        habitName: "Walk",
+        scheduledTime: "18:30",
+      },
+    ]);
+
+    expect(invoke).toHaveBeenCalledWith("sync_habits_to_apple_reminders", {
+      date: "2026-06-21",
+      items: [
+        {
+          habitName: "Walk",
+          scheduledTime: "18:30",
+        },
+      ],
     });
   });
 });
