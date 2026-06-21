@@ -16,7 +16,7 @@ concurrency:
 jobs:
   release:
     name: Semantic Release
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -31,6 +31,25 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Build Tauri app (macOS)
+        run: bun run build
+
+      - name: Verify DMG bundle exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          dmg_files=(src-tauri/target/release/bundle/dmg/*.dmg)
+
+          if [ ${#dmg_files[@]} -eq 0 ]; then
+            echo "No DMG found at src-tauri/target/release/bundle/dmg/*.dmg"
+            echo "Build did not produce a DMG, so release assets would be missing."
+            exit 1
+          fi
+
+          echo "Found DMG artifacts:"
+          ls -lh src-tauri/target/release/bundle/dmg/*.dmg
 
       - name: Publish GitHub Release
         env:
