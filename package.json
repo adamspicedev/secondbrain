@@ -14,6 +14,7 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "doctor:deps": "sh ./scripts/doctor-deps.sh",
+    "lint": "biome check --write . && biome format --write .",
     "biome:check": "biome check .",
     "biome:write": "biome check --write .",
     "biome:format": "biome format --write .",
