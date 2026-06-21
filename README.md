@@ -222,6 +222,34 @@ bun run build
 # Creates: src-tauri/target/release/secondbrain.dmg (Mac)
 ```
 
+## GitHub Releases (Automated)
+
+GitHub releases are generated automatically from commits pushed to `main` via `.github/workflows/release.yml` using `semantic-release`.
+
+### Versioning Rules (SemVer)
+
+- `fix:` commits create a patch release: `x.y.Z`
+- `feat:` commits create a minor release: `x.Y.z`
+- Breaking changes (`!` or `BREAKING CHANGE:`) create a major release: `X.y.z`
+
+Examples:
+
+```text
+fix(search): handle empty query
+feat(upload): support pdf drag-and-drop
+feat(api)!: change search response shape
+```
+
+### What Gets Released
+
+- A Git tag like `v1.2.3`
+- A GitHub Release with generated notes
+- Updated versions synchronized in:
+  - `package.json`
+  - `src-tauri/Cargo.toml`
+  - `src-tauri/tauri.conf.json`
+- Updated `CHANGELOG.md`
+
 ### Debug Database
 
 ```bash
